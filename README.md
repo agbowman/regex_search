@@ -33,20 +33,21 @@ exclude_dirs = [r"N:\InterfaceScripts\Build\backup", r"N:\InterfaceScripts\Build
 ```bash
 specific_dirs = [r"N:\cclprod", r"N:\InterfaceScripts"]
 ```
+###Keep in mind that specific_dirs is asigned twice. once in choice1 and once in choice2 to allow for different searches. You most likely want to update in both places.
 
-### Install Python
+## Install Python
 
 1. **Download Python**: Go to the [official Python website](https://www.python.org/downloads/) and download the latest version for your operating system. Ensure you download Python 3.x as this script is not compatible with Python 2.x.
 2. **Install Python**: Run the installer. Make sure to check the box that says **Add Python to PATH** to ensure your system recognizes Python commands in the terminal.
 
-### Set Up Your Environment in VSCode
+## Set Up Your Environment in VSCode
 
 1. **Download and Install VSCode**: If you haven't already, download VSCode from the [official site](https://code.visualstudio.com/) and install it.
 2. **Open VSCode** and navigate to the Extensions view by clicking on the square icon on the sidebar or pressing `Ctrl+Shift+X`.
 3. **Install the Python Extension**: Search for `Python` and install the extension provided by Microsoft. This extension provides enhanced support for Python, including debugging, linting, and code completion.
 4. **Open the Project Folder**: Use `File > Open Folder` to open the folder where you've saved the `regex_search` script.
 
-### Install Necessary Packages
+## Install Necessary Packages
 
 `regex_search` requires `pandas` and potentially `openpyxl` (for `.xlsx` file support). Install these packages using the following commands in your terminal or command prompt: (in vscode: terminal -> new terminal)
 
