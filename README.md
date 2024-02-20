@@ -33,7 +33,7 @@ exclude_dirs = [r"N:\InterfaceScripts\Build\backup", r"N:\InterfaceScripts\Build
 ```bash
 specific_dirs = [r"N:\cclprod", r"N:\InterfaceScripts"]
 ```
-###Keep in mind that specific_dirs is asigned twice. once in choice1 and once in choice2 to allow for different searches. You most likely want to update in both places.
+### Keep in mind that specific_dirs is asigned twice. once in choice1 and once in choice2 to allow for different searches. You most likely want to update in both places.
 
 ## Install Python
 
