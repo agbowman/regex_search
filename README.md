@@ -48,7 +48,7 @@ specific_dirs = [r"N:\cclprod", r"N:\InterfaceScripts"]
 ![image](https://github.com/agbowman/regex_search/assets/148987179/0d619689-5231-457b-bad3-0d4f24e3645a)
 
 ### Coming up with regex patterns is hard...
-If you want a more advanced regex pattern to put inside of "advanced_patters" (as mentioned before), chatgpt is actually really good at coming up with regex patterns. I strongly recommend using it for this type of task.
+If you want a more advanced regex pattern to put inside of "advanced_patterns" array (as mentioned before), chatgpt is actually really good at coming up with regex patterns. I strongly recommend using it for this type of task.
 Try running on small set of example files first to see if the criterea fits what you wanted. 
 
 ## Getting Started
