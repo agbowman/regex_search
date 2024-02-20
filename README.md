@@ -20,7 +20,7 @@ Exclusion of Directories: To increase search specificity and reduce processing t
 Output Customization: regex_search supports output in multiple file formats. Users can choose between .csv and .xlsx formats for the output file for easy readability.
 
 ## Things to know/modify:
-### in "main_menu" function, if you want to add more advanced regex patterns (beyond basic word/phrase parsing "basic_patterns") you can add them to the advanced_patterns = [] array. i.e: 
+### in "main_menu" function, if you want to add more advanced regex patterns (optional - beyond basic word/phrase parsing "basic_patterns") you can add them to the advanced_patterns = [] array. i.e: 
 
 ```bash
 #change this:
@@ -49,7 +49,7 @@ specific_dirs = [r"N:\cclprod", r"N:\InterfaceScripts"]
 
 ### Coming up with regex patterns is hard...
 If you want a more advanced regex pattern to put inside of "advanced_patterns" array (as mentioned before), chatgpt is actually really good at coming up with regex patterns. I strongly recommend using it for this type of task.
-Try running on small set of example files first to see if the criterea fits what you wanted. 
+Try running on small set of example files first to see if the criterea fits what you wanted. You can also validate your regex pattern here: Regex101: https://regex101.com/
 
 ## Getting Started
 
