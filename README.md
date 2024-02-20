@@ -25,7 +25,7 @@ This guide will help you set up your environment to run the `regex_search` tool.
 
 ### Install Necessary Packages
 
-`regex_search` requires `pandas` and potentially `openpyxl` (for `.xlsx` file support). Install these packages using the following commands in your terminal or command prompt:
+`regex_search` requires `pandas` and potentially `openpyxl` (for `.xlsx` file support). Install these packages using the following commands in your terminal or command prompt: (in vscode: terminal -> new terminal)
 
 ```bash
 pip install pandas
