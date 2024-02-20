@@ -6,10 +6,11 @@ regex_search is a Python tool designed to search for regular expression patterns
 ### input:
 
 ![image](https://github.com/agbowman/regex_search/assets/148987179/9d7bae3d-4d01-4966-b48a-4e8d9c02b183)
+![image](https://github.com/agbowman/regex_search/assets/148987179/fb73cff1-0d08-44c8-8608-4fd630b5ab37)
+
 ### output:
 
 ![image](https://github.com/agbowman/regex_search/assets/148987179/eba9b854-9aaa-4768-b0dd-a3e8bd73af63)
-
 
 
 ## Features
