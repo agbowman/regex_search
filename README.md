@@ -15,7 +15,11 @@ This guide will help you set up your environment to run the `regex_search` tool.
 
 ## Things to know/modify:
 ### in "main_menu" function, if you want to add more advanced regex patterns you can add them to the advanced_patterns = [] array. i.e: 
+
 ```bash
+#change this:
+     advanced_patterns = []
+#to something like this with your given regex
      advanced_patterns = [  # Advanced patterns as pre-compiled regex objects
          re.compile(r"(?<![0-9])(\bcode_set\s*=\s*71\b|,?\s*71\s*,?)(?![0-9])"),
          re.compile(r"CKI\.CODEVALUE!(3958|3957|3959|24695|8320|17613|8318|4203425924|9547|1302227|2160170007)\b")
