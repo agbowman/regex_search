@@ -2,16 +2,18 @@
 
 regex_search is a Python tool designed to search for regular expression patterns within files located in a specified directory and its subdirectories. This tool is useful for analyzing and filtering large datasets or collections of files, allowing users to quickly identify and extract valuable information based on complex search criteria. The results are comprehensively documented, detailing the file location where the pattern was found, the specific pattern matched, the line numbers where matches occurred, and more. Furthermore, regex_search offers flexibility in output formats, supporting both .csv and .xlsx file types for easy viewing and analysis.
 
+## Goal
+![image](https://github.com/agbowman/regex_search/assets/148987179/9d7bae3d-4d01-4966-b48a-4e8d9c02b183)
+![image](https://github.com/agbowman/regex_search/assets/148987179/eba9b854-9aaa-4768-b0dd-a3e8bd73af63)
+
+
+
 ## Features
 
 Multiple File Type Support: Users can specify one or multiple file extensions to narrow down the search, enhancing efficiency and focus.
-Advanced Regex Patterns: Beyond basic text matching, regex_search allows for the inclusion of advanced regex patterns. This capability enables users to construct and apply sophisticated search criteria that can match a wide array of textual patterns within files.
+Advanced Regex Patterns: Beyond basic text matching, regex_search allows for the inclusion of advanced regex patterns. This capability enables users to construct and apply complex search criteria that can match many textual patterns within files.
 Exclusion of Directories: To increase search specificity and reduce processing time, users have the option to exclude certain directories from the search. This feature is particularly useful for skipping over directories that are known to be irrelevant or that contain sensitive information not intended for search.
 Output Customization: regex_search supports output in multiple file formats. Users can choose between .csv and .xlsx formats for the output file for easy readability.
-
-## Getting Started
-
-This guide will help you set up your environment to run the `regex_search` tool.
 
 ## Things to know/modify:
 ### in "main_menu" function, if you want to add more advanced regex patterns (beyond basic word/phrase parsing "basic_patterns") you can add them to the advanced_patterns = [] array. i.e: 
@@ -34,6 +36,18 @@ exclude_dirs = [r"N:\InterfaceScripts\Build\backup", r"N:\InterfaceScripts\Build
 specific_dirs = [r"N:\cclprod", r"N:\InterfaceScripts"]
 ```
 ### Keep in mind that specific_dirs is asigned twice. once in choice1 and once in choice2 to allow for different searches. You most likely want to update in both places.
+
+
+## Things I find usefull
+This extension lets you view the output without needing to hop out of vscode.
+
+![image](https://github.com/agbowman/regex_search/assets/148987179/0d619689-5231-457b-bad3-0d4f24e3645a)
+
+
+## Getting Started
+
+This guide will help you set up your environment to run the `regex_search` tool.
+
 
 ## Install Python
 
