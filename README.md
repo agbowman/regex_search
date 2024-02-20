@@ -14,7 +14,7 @@ Output Customization: regex_search supports output in multiple file formats. Use
 This guide will help you set up your environment to run the `regex_search` tool.
 
 ## Things to know/modify:
-### in "main_menu" function, if you want to add more advanced regex patterns you can add them to the advanced_patterns = [] array. i.e: 
+### in "main_menu" function, if you want to add more advanced regex patterns (beyond basic word/phrase parsing "basic_patterns") you can add them to the advanced_patterns = [] array. i.e: 
 
 ```bash
 #change this:
