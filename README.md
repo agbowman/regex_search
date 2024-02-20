@@ -13,19 +13,19 @@ Output Customization: regex_search supports output in multiple file formats. Use
 
 This guide will help you set up your environment to run the `regex_search` tool.
 
-### Things to know/modify:
--in "main_menu" function, if you want to add more advanced regex patterns you can add them to the advanced_patterns = [] array. i.e: 
+## Things to know/modify:
+### in "main_menu" function, if you want to add more advanced regex patterns you can add them to the advanced_patterns = [] array. i.e: 
 ```bash
      advanced_patterns = [  # Advanced patterns as pre-compiled regex objects
          re.compile(r"(?<![0-9])(\bcode_set\s*=\s*71\b|,?\s*71\s*,?)(?![0-9])"),
          re.compile(r"CKI\.CODEVALUE!(3958|3957|3959|24695|8320|17613|8318|4203425924|9547|1302227|2160170007)\b")
      ]
 ```
--If you want to exclude certain directories in search, you can add them to exclude_dirs = []  array. (must use "r" for raw string absolute path) i.e: 
+### If you want to exclude certain directories in search, you can add them to exclude_dirs = []  array. (must use "r" for raw string absolute path) i.e: 
 ```bash
 exclude_dirs = [r"N:\InterfaceScripts\Build\backup", r"N:\InterfaceScripts\Build\temp"]
 ```
--If you want ot change the directories in which you are searching in just add or remove them here: 
+### If you want ot change the directories in which you are searching in just add or remove them here: 
 ```bash
 specific_dirs = [r"N:\cclprod", r"N:\InterfaceScripts"]
 ```
