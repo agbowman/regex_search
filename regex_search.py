@@ -204,7 +204,7 @@ def main_menu():
         basic_patterns_input = input("Enter basic patterns to search for separated by ',' (e.g., 'birth_dt_tm,dob,mrn' or 'none' if you don't have any): ").strip()
         if basic_patterns_input.lower() == "none":
             basic_patterns = []  # If you don't have any basic patterns
-            print("No basic patterns entered. Using only advanced patterns if specified.")
+            print("No basic patterns entered. Using only advanced patterns specified in advanced_patterns[] array (in main_menu function).")
         else:
             basic_patterns = [pattern.strip() for pattern in basic_patterns_input.split(',')]
         
