@@ -8,7 +8,6 @@ def compile_all_patterns(basic_patterns, advanced_patterns):
     compiled_basic = [re.compile(pattern, re.IGNORECASE) for pattern in basic_patterns]
     return compiled_basic + advanced_patterns
 
-# Helper Function to Search Files
 
 
 # This function processes a single file against compiled patterns.
@@ -240,7 +239,6 @@ def main_menu():
             if exclude_input == 'y':
                 exclude_dirs_input = input("Enter the directories to exclude separated by ',' (e.g., 'C:\\Users\\temp,D:\\Data\\backup'): ").strip()
                 exclude_dirs = [dir_path.strip() for dir_path in exclude_dirs_input.split(',') if dir_path.strip()]
-                # Optionally, validate the excluded directories
                 exclude_dirs = validate_exclude_dirs(exclude_dirs)
             
             all_matches = []
@@ -260,8 +258,6 @@ def main_menu():
                 save_matches(df, output_type, specific_dirs, basic_patterns)
         
         elif choice == "2":
-            # specific_dirs = [r"N:\cclprod", r"N:\InterfaceScripts"]  # Example specific directories
-            # specific_dirs = validate_specific_dirs(specific_dirs, os.getcwd())
             
             all_matches = []
             for specific_dir in specific_dirs:
