@@ -21,20 +21,20 @@ regex_search is a multithreading Python tool designed to search for regular expr
 5) Enter file path keywords to ignore separated by ',' (e.g., 'backup,bkp' or 'none' if you don't have any). 
 You can also enter the a file to ignore with the full path (e.g., 'C:\Users\temp\file.txt'): backup,bkp
 6)
-Select search option:
-1) Search specified directories recursively (Top-level and subdirectories)
-2) Search top level files only (No subdirectories)
-3) Exit
-Enter your choice: 1
+   Select search option:
+   1) Search specified directories recursively (Top-level and subdirectories)
+   2) Search top level files only (No subdirectories)
+   3) Exit
+   Enter your choice: 1
 
 # I will go with 1 in this case
 
 7) Are there any directories/subdirectories that you want to exclude? (y/n): y
 Enter the directories to exclude separated by ',' (e.g., 'C:\Users\temp,D:\Data\backup'): N:\cclprod\bhs_rpt_item_master_cdm
 
-The valid excluded dirs are:
- - N:\cclprod\bhs_rpt_item_master_cdm
-Starting search in N:\cclprod including subdirectories...
+   The valid excluded dirs are:
+    - N:\cclprod\bhs_rpt_item_master_cdm
+   Starting search in N:\cclprod including subdirectories...
 
 ```
 # Goal
