@@ -10,7 +10,7 @@ regex_search is a multithreading Python tool designed to search for regular expr
 ### can be whichever regex patters you specify in the advanced_patterns array. examples shown below
 
 # User input
-### When you run the program with python regex_search.py in your project folder (wherever you stored the regex_search.py file), the command line interface will walk you through all of the steps for filtering your search with brief explinations on what you would need to enter.
+### When you run the program with python regex_search.py in your project folder (wherever you stored the regex_search.py file), the command line interface will walk you through all of the steps for filtering your search with brief explinations on what you would need to enter. There are checks in place to make sure you entered a valid path. please look out for those messages! 
 
 ### example of prompt
 ```
