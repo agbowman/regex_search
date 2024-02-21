@@ -5,7 +5,9 @@ regex_search is a multithreading Python tool designed to search for regular expr
 # Basic patterns(optional):
 ### are case insensitive
 # advanced patterns(optional):
-### can be whichever regex patters you specify in the advanced_patterns array. examples shown below
+### 
+-This might be the only thing you would ever touch in the python code if you wanted to do so.
+-can be whichever regex patters you specify in the advanced_patterns array. examples shown below
 
 # Goal
 ### input:
