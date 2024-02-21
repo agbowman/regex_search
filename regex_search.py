@@ -222,7 +222,7 @@ def main_menu():
             print("Invalid output type. Please choose a valid output type. (csv, xlsx, html)")
             output_type = input("Enter the output file type (e.g., 'csv', 'xlsx'): ").strip().lower()
         
-        ignore_keywords_input = input("Enter file path keywords to ignore separated by ',' (e.g., 'backup,bkp' or 'none' if you don't have any): ").strip()
+        ignore_keywords_input = input("Enter file path keywords to ignore separated by ',' (e.g., 'backup,bkp' or 'none' if you don't have any). \nYou can also enter the a file to ignore with the full path (e.g., 'C:\\Users\\temp\\file.txt'): ").strip()
         ignore_paths_keywords = [] if ignore_keywords_input.lower() == "none" else [keyword.strip() for keyword in ignore_keywords_input.split(',')]
         
         print("\nSelect search option:")
@@ -263,7 +263,7 @@ def main_menu():
             for specific_dir in specific_dirs:
                 specific_dir_abs = os.path.abspath(specific_dir)
                 print(f"Starting search in {specific_dir_abs} without including subdirectories. Top level files only...")
-                matches = search_files(specific_dir_abs, all_patterns, file_extensions, include_subdirs=False, exclude_dirs=exclude_dirs, ignore_paths_keywords=ignore_paths_keywords)
+                matches = search_files(specific_dir_abs, all_patterns, file_extensions, include_subdirs=False, exclude_dirs=None, ignore_paths_keywords=ignore_paths_keywords)
                 
                 if matches:
                     all_matches.extend(matches)
