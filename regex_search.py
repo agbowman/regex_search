@@ -1,7 +1,7 @@
 import os
 import re
 import pandas as pd
-
+import concurrent.futures
 
 # Combined Patterns (Both Basic and Advanced)
 def compile_all_patterns(basic_patterns, advanced_patterns):
@@ -9,48 +9,72 @@ def compile_all_patterns(basic_patterns, advanced_patterns):
     return compiled_basic + advanced_patterns
 
 # Helper Function to Search Files
-def search_files(directory, patterns, file_extensions, include_subdirs=True, exclude_dirs=None):
+
+
+# This function processes a single file against compiled patterns.
+def search_file(file_path, compiled_patterns):
+    matches = []
+    try:
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()
+            for pattern in compiled_patterns:
+                for i, line in enumerate(lines, 1):
+                    if pattern.search(line):
+                        matches.append((file_path, pattern.pattern, line.strip(), i))
+    except UnicodeDecodeError:
+        print(f"Skipping file due to encoding issues: {file_path}")
+    return matches
+
+def search_files(directory, patterns, file_extensions, include_subdirs=True, exclude_dirs=None, ignore_paths_keywords=None):
     matches_dict = {}
     compiled_patterns = patterns
+    files_to_search = []
+
     directory = os.path.abspath(directory)  # Convert to absolute path for safety
 
     if exclude_dirs:
         exclude_dirs = [os.path.abspath(dir_path) for dir_path in exclude_dirs]
 
+    # Compile ignore paths patterns for efficiency
+    ignore_patterns = []
+    if ignore_paths_keywords:
+        ignore_patterns = [re.compile(re.escape(keyword), re.IGNORECASE) for keyword in ignore_paths_keywords]
+
     for root, dirs, files in os.walk(directory, topdown=True):
         if not include_subdirs:
-            # If we're not including subdirectories, clear the dirs list
-            # This prevents os.walk from going into any subdirectories
             dirs.clear()
 
         if exclude_dirs:
             dirs[:] = [d for d in dirs if os.path.join(root, d) not in exclude_dirs]
 
-        for file in files:
+        # Apply ignore patterns to filter dirs and files before adding them to the search list
+        dirs[:] = [d for d in dirs if not any(pat.search(os.path.join(root, d)) for pat in ignore_patterns)]
+        filtered_files = [f for f in files if not any(pat.search(os.path.join(root, f)) for pat in ignore_patterns)]
+
+        for file in filtered_files:
             if '*' in file_extensions or any(file.endswith('.' + ext) for ext in file_extensions):
-                file_path = os.path.join(root, file)
-                try:
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        lines = f.readlines()
-                        for pattern in compiled_patterns:
-                            for i, line in enumerate(lines, 1):
-                                if pattern.search(line):
-                                    if file_path not in matches_dict:
-                                        matches_dict[file_path] = {
-                                            "file location": file_path,
-                                            "patterns": [],
-                                            "matched lines": [],
-                                            "line numbers": []
-                                        }
-                                    pattern_str = pattern.pattern if hasattr(pattern, 'pattern') else str(pattern)
-                                    if pattern_str not in matches_dict[file_path]["patterns"]:
-                                        matches_dict[file_path]["patterns"].append(pattern_str)
-                                    matches_dict[file_path]["matched lines"].append(line.strip())
-                                    matches_dict[file_path]["line numbers"].append(i)
-                except UnicodeDecodeError:
-                    print(f"Skipping file due to encoding issues: {file_path}")
+                files_to_search.append(os.path.join(root, file))
+
+    # Use ThreadPoolExecutor to process files in parallel
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_to_file = {executor.submit(search_file, file, compiled_patterns): file for file in files_to_search}
+        for future in concurrent.futures.as_completed(future_to_file):
+            matches = future.result()
+            for file_path, pattern_str, line, line_number in matches:
+                if file_path not in matches_dict:
+                    matches_dict[file_path] = {
+                        "file location": file_path,
+                        "patterns": [],
+                        "matched lines": [],
+                        "line numbers": []
+                    }
+                if pattern_str not in matches_dict[file_path]["patterns"]:
+                    matches_dict[file_path]["patterns"].append(pattern_str)
+                matches_dict[file_path]["matched lines"].append(line)
+                matches_dict[file_path]["line numbers"].append(line_number)
 
     return list(matches_dict.values())
+
 
 
 def validate_exclude_dirs(exclude_dirs):
@@ -97,8 +121,21 @@ def get_user_confirmation(prompt):
     return answer
 
 
-def save_matches(df, output_type, filename_prefix="matches"):
+
+
+def save_matches(df, output_type, specific_dirs, basic_patterns):
     """Save the DataFrame of matches to a file in the specified format."""
+
+    # Extract the basename of each directory and join them with "_"
+    dir_names = [os.path.basename(os.path.normpath(dir_path)) for dir_path in specific_dirs]
+    dir_names_str = "_".join(dir_names)
+    
+    # Join the patterns with "_"
+    patterns_str = "_".join(basic_patterns).replace('*', 'all')  # Replace '*' to avoid invalid filename
+    
+    # Construct the filename prefix
+    filename_prefix = f"{dir_names_str}_{patterns_str}_matches" if basic_patterns else f"{dir_names_str}_matches"
+    
     if not df.empty:
         filename = f"{filename_prefix}.{output_type}"
         
@@ -109,7 +146,6 @@ def save_matches(df, output_type, filename_prefix="matches"):
             df.to_excel(filename, index=False)
         elif output_type == 'html':
             df.to_html(filename, index=False)
-
         else:
             print(f"Unsupported file type: {output_type}")
             return
@@ -120,12 +156,16 @@ def save_matches(df, output_type, filename_prefix="matches"):
 
 
 
-######################################################################################################################
-#example usage of patterns:
 
-    # basic_patterns = []  # if you don't have any basic patterns
-    # advanced_patterns = []  # if you don't have any advanced patterns
-    # basic_patterns = ['birth_dt_tm', 'dob']  # Basic patterns. Will find all occurrences of 'birth_dt_tm' and 'dob'
+
+
+def main_menu():
+##################################################################################################################
+    # default settings 
+    advanced_patterns = [] # set to empty array. if you don't have any advanced patterns
+    #ADD ANY ADVANCED REGEX PATTERNS HERE^^^^^ 
+#######################################################################################################################
+    #example usage of advanced patterns:
 
     # advanced_patterns = [  # Advanced patterns as pre-compiled regex objects
     #     re.compile(r"(?<![0-9])(\bcode_set\s*=\s*71\b|,?\s*71\s*,?)(?![0-9])"),
@@ -133,93 +173,117 @@ def save_matches(df, output_type, filename_prefix="matches"):
     # ]
 ######################################################################################################################
 
-# Main Menu
-def main_menu():
-  ######################################################################################################################
-    advanced_patterns = [] # set to empty array. if you don't have any advanced patterns
-    #ADD ANY ADVANCED REGEX PATTERNS HERE^^^^^ 
-  ######################################################################################################################
+######################################################################################################################
+    specific_dirs = [r"N:\cclprod"]  # Default specific directories to search
+########################################################################################################################
     while True:
-        basic_patterns = input("Enter basic patterns separated by ',' (e.g., 'birth_dt_tm,dob,mrn' or 'none' if you don't have any): ").strip()
-        if basic_patterns.lower() == "none":                                                                                                                                                          
-            basic_patterns = []  # if you don't have any basic patterns
+        print(f"You are set to search inside of directories {specific_dirs}. Would you like to change your search directories? (y/n)")
+        change_dirs = input().strip().lower()
+        if change_dirs == 'y':
+            new_dirs_input = input("Enter new directories separated by ',' (e.g., 'C:\\Users\\,D:\\Data'): ").strip()
+            new_dirs = [dir_path.strip() for dir_path in new_dirs_input.split(',') if dir_path.strip()]
+            valid_dirs, invalid_dirs = [], []
+            for dir_path in new_dirs:
+                if os.path.isdir(dir_path):
+                    valid_dirs.append(dir_path)
+                else:
+                    invalid_dirs.append(dir_path)
+            
+            if valid_dirs:
+                print("The following directories are set for search:")
+                for valid_dir in valid_dirs:
+                    print(f" - {valid_dir}")
+                specific_dirs = valid_dirs  # Update specific_dirs with valid directories only
+                
+            if invalid_dirs:
+                print("The following directories are not valid and will be ignored:")
+                for invalid_dir in invalid_dirs:
+                    print(f" - {invalid_dir}")
+
+
+        basic_patterns_input = input("Enter basic patterns to search for separated by ',' (e.g., 'birth_dt_tm,dob,mrn' or 'none' if you don't have any): ").strip()
+        if basic_patterns_input.lower() == "none":
+            basic_patterns = []  # If you don't have any basic patterns
             print("No basic patterns entered. Using only advanced patterns if specified.")
         else:
-            basic_patterns = basic_patterns.split(',')
-            basic_patterns = [pattern.strip() for pattern in basic_patterns]
+            basic_patterns = [pattern.strip() for pattern in basic_patterns_input.split(',')]
+        
         all_patterns = compile_all_patterns(basic_patterns, advanced_patterns)
+        
         file_extensions_input = input("Enter file extensions to search for separated by ',' (e.g., 'txt,prg,bak,dpb' or '*' for any): ").strip()
         file_extensions = [ext.strip() for ext in file_extensions_input.split(',')] if file_extensions_input != '*' else ['*']
-
+        
         while not file_extensions_input:
             print("File extension cannot be empty.")
             file_extensions_input = input("Enter file extensions to search for separated by ',' (e.g., 'txt,prg,bak,dpb' or '*' for any): ").strip()
             file_extensions = [ext.strip() for ext in file_extensions_input.split(',')] if file_extensions_input != '*' else ['*']
+        
         output_type = input("Enter the output file type (e.g., 'csv', 'xlsx'): ").strip().lower()
         while output_type not in ['csv', 'xlsx', 'html']:
             print("Invalid output type. Please choose a valid output type. (csv, xlsx, html)")
             output_type = input("Enter the output file type (e.g., 'csv', 'xlsx'): ").strip().lower()
+        
+        ignore_keywords_input = input("Enter file path keywords to ignore separated by ',' (e.g., 'backup,bkp' or 'none' if you don't have any): ").strip()
+        ignore_paths_keywords = [] if ignore_keywords_input.lower() == "none" else [keyword.strip() for keyword in ignore_keywords_input.split(',')]
+        
         print("\nSelect search option:")
         print("1) Search specified directories recursively (Top-level and subdirectories)")
         print("2) Search top level files only (No subdirectories)")
         print("3) Exit")
-
+        
         choice = input("Enter your choice: ")
-        # exclude_dirs = [r"N:\InterfaceScripts\Build\backup"]  # Example exclude_dirs
-        exclude_dirs = []  
-        if choice in ["1", "2"]:
-            # Validate exclude_dirs before proceeding with the search.
-            exclude_dirs = validate_exclude_dirs(exclude_dirs)
-
+        
+       
+        
         if choice == "1":
-            specific_dirs = [r"N:\cclprod", r"N:\InterfaceScripts"]  # Use raw strings for each path
-            # specific_dirs = [r"N:\InterfaceScripts\Build"]
-            specific_dirs = validate_specific_dirs(specific_dirs, os.getcwd())  # Validate directories
-
-            all_matches = []  # Collect matches from all specific directories
+            exclude_input = input("Are there any directories/subdirectories that you want to exclude? (y/n): ").strip().lower()
+            if exclude_input == 'y':
+                exclude_dirs_input = input("Enter the directories to exclude separated by ',' (e.g., 'C:\\Users\\temp,D:\\Data\\backup'): ").strip()
+                exclude_dirs = [dir_path.strip() for dir_path in exclude_dirs_input.split(',') if dir_path.strip()]
+                # Optionally, validate the excluded directories
+                exclude_dirs = validate_exclude_dirs(exclude_dirs)
+            
+            all_matches = []
             for specific_dir in specific_dirs:
                 specific_dir_abs = os.path.abspath(specific_dir)
                 print(f"Starting search in {specific_dir_abs} including subdirectories...")
-                matches = search_files(specific_dir_abs, all_patterns,file_extensions,  include_subdirs=True, exclude_dirs=exclude_dirs)
+                matches = search_files(specific_dir_abs, all_patterns, file_extensions, include_subdirs=True, exclude_dirs=exclude_dirs, ignore_paths_keywords=ignore_paths_keywords)
                 
                 if matches:
                     all_matches.extend(matches)
                     print(f"Matches found in {specific_dir}: {len(matches)}")
                 else:
-                    print(f"No matches found in {specific_dir}.")
-
+                    print("No matches found.")
+            
             if all_matches:
                 df = pd.DataFrame(all_matches)
-                save_matches(df, output_type, filename_prefix="matches_specific_dirs")
-
-
-
+                save_matches(df, output_type, specific_dirs, basic_patterns)
+        
         elif choice == "2":
-            specific_dirs = [r"N:\cclprod", r"N:\InterfaceScripts"]  # Use raw strings for each path
-            specific_dirs = validate_specific_dirs(specific_dirs, os.getcwd())  # Validate directories
-
-            all_matches = []  # Collect matches from all specific directories
+            # specific_dirs = [r"N:\cclprod", r"N:\InterfaceScripts"]  # Example specific directories
+            # specific_dirs = validate_specific_dirs(specific_dirs, os.getcwd())
+            
+            all_matches = []
             for specific_dir in specific_dirs:
                 specific_dir_abs = os.path.abspath(specific_dir)
-                print(f"Starting search in {specific_dir_abs} without including subdirectories...")
-                matches = search_files(specific_dir_abs, all_patterns, file_extensions, include_subdirs=False, exclude_dirs=exclude_dirs)
+                print(f"Starting search in {specific_dir_abs} without including subdirectories. Top level files only...")
+                matches = search_files(specific_dir_abs, all_patterns, file_extensions, include_subdirs=False, exclude_dirs=exclude_dirs, ignore_paths_keywords=ignore_paths_keywords)
                 
                 if matches:
                     all_matches.extend(matches)
                     print(f"Matches found in {specific_dir}: {len(matches)}")
                 else:
-                    print(f"No matches found in {specific_dir}.")
-
+                    print("No matches found.")
+            
             if all_matches:
                 df = pd.DataFrame(all_matches)
-                save_matches(df, output_type, filename_prefix="matches_top_level_files_in_specific_directories")
-
-
+                save_matches(df, output_type, specific_dirs, basic_patterns)
+        
         elif choice == "3":
             print("Exiting...")
             break
-        else:
-            print("Invalid choice, please select a valid option.")
+       
+
 
 if __name__ == "__main__":
     main_menu()
