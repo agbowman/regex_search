@@ -13,7 +13,7 @@ regex_search is a multithreading Python tool designed to search for regular expr
 ### When you run the program with python regex_search.py in your project folder (wherever you stored the regex_search.py file), the command line interface will walk you through all of the steps for filtering your search with brief explinations on what you would need to enter.
 
 ### example of prompt
-```bash
+```
 1) You are set to search inside of directories ['N:\\cclprod']. Would you like to change your search directories? (y/n) n
 2) Enter basic patterns to search for separated by ',' (e.g., 'birth_dt_tm,dob,mrn' or 'none' if you don't have any): dob,micro
 3) Enter file extensions to search for separated by ',' (e.g., 'txt,prg,bak,dpb' or '*' for any): prg,dbp
