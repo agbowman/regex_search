@@ -12,7 +12,7 @@ regex_search is a multithreading Python tool designed to search for regular expr
 # User input
 ### When you run the program with python regex_search.py in your project folder (wherever you stored the regex_search.py file), the command line interface will walk you through all of the steps for filtering your search with brief explinations on what you would need to enter. There are checks in place to make sure you entered a valid path. please look out for those messages! 
 
-### example of prompt
+### example of prompt:
 ```
 1) You are set to search inside of directories ['N:\\cclprod']. Would you like to change your search directories? (y/n) n
 2) Enter basic patterns to search for separated by ',' (e.g., 'birth_dt_tm,dob,mrn' or 'none' if you don't have any): dob,micro
@@ -37,7 +37,7 @@ Enter the directories to exclude separated by ',' (e.g., 'C:\Users\temp,D:\Data\
    Starting search in N:\cclprod including subdirectories...
 
 ```
-Another example using different directories to search in and using advanced patterns instead of basic patterns (you are allowed to use both in same search. I chose not to for this example)
+### Another example using different directories to search in and using advanced patterns instead of basic patterns (you are allowed to use both in same search. I chose not to for this example):
 ```
 1) You are set to search inside of directories ['N:\\cclprod']. Would you like to change your search directories? (y/n)
 y
