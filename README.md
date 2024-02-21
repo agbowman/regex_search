@@ -75,7 +75,7 @@ Advanced Regex Patterns: Beyond basic text matching, regex_search allows for the
 Exclusion of Directories: To increase search specificity and reduce processing time, users have the option to exclude certain directories from the search. This feature is particularly useful for skipping over directories that are known to be irrelevant or that contain sensitive information not intended for search.
 Output Customization: regex_search supports output in multiple file formats. Users can choose between .csv and .xlsx formats for the output file for easy readability.
 Fast searching with multithreading. Searches files in parallel with searching inside of a single file for regex patterns.
-## More about adding your own regex patterns to search for:
+## More about adding your own regex patterns to search for, "advanced_patterns" (optional):
 ### in "main_menu" function, if you want to add more advanced regex patterns (optional - beyond basic word/phrase parsing "basic_patterns") you can add them to the advanced_patterns = [] array. i.e: 
 
 ```bash
