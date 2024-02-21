@@ -21,7 +21,7 @@ Multiple File Type Support: Users can specify one or multiple file extensions to
 Advanced Regex Patterns: Beyond basic text matching, regex_search allows for the inclusion of advanced regex patterns. This capability enables users to construct and apply complex search criteria that can match many textual patterns within files.
 Exclusion of Directories: To increase search specificity and reduce processing time, users have the option to exclude certain directories from the search. This feature is particularly useful for skipping over directories that are known to be irrelevant or that contain sensitive information not intended for search.
 Output Customization: regex_search supports output in multiple file formats. Users can choose between .csv and .xlsx formats for the output file for easy readability.
-
+Fast searching with multithreading. Searches files in parallel with searching inside of a single file for regex patterns.
 ## Things to know/modify:
 ### in "main_menu" function, if you want to add more advanced regex patterns (optional - beyond basic word/phrase parsing "basic_patterns") you can add them to the advanced_patterns = [] array. i.e: 
 
@@ -34,15 +34,6 @@ Output Customization: regex_search supports output in multiple file formats. Use
          re.compile(r"CKI\.CODEVALUE!(3958|3957|3959|24695|8320|17613|8318|4203425924|9547|1302227|2160170007)\b")
      ]
 ```
-### If you want to exclude certain directories in search, you can add them to exclude_dirs = []  array. (must use "r" for raw string absolute path) i.e: 
-```bash
-exclude_dirs = [r"N:\InterfaceScripts\Build\backup", r"N:\InterfaceScripts\Build\temp"]
-```
-### If you want ot change the directories in which you are searching in just add or remove them here: 
-```bash
-specific_dirs = [r"N:\cclprod", r"N:\InterfaceScripts"]
-```
-### Keep in mind that specific_dirs is asigned twice. once in choice1 and once in choice2 to allow for different searches. You most likely want to update in both places.
 
 
 ## Things I find usefull
