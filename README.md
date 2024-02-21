@@ -1,13 +1,13 @@
-## regex_search
+# regex_search
 
 regex_search is a Python tool designed to search for regular expression patterns within files located in a specified directory and its subdirectories. This tool is useful for analyzing and filtering large datasets or collections of files, allowing users to quickly identify and extract valuable information based on complex search criteria. The results are comprehensively documented, detailing the file location where the pattern was found, the specific pattern matched, the line numbers where matches occurred, and more. Furthermore, regex_search offers flexibility in output formats, supporting both .csv and .xlsx file types for easy viewing and analysis. 
 
 # Basic patterns(optional):
-## are case insensitive
+### are case insensitive
 # advanced patterns(optional):
-## can be whichever regex patters you specify in the advanced_patterns array. examples shown below
+### can be whichever regex patters you specify in the advanced_patterns array. examples shown below
 
-## Goal
+# Goal
 ### input:
 #### choice #1
 ![image](https://github.com/agbowman/regex_search/assets/148987179/fb73cff1-0d08-44c8-8608-4fd630b5ab37)
