@@ -12,7 +12,8 @@ regex_search is a multithreading Python tool designed to search for regular expr
 ### are case insensitive by default. if you want to use case sensitive words at the command line just wrap "case()" around your word. example:
 
 ```
- Enter basic patterns to search for separated by ',' (e.g., 'birth_dt_tm,dob,mrn' or 'none' if you don't have any): case(DOB),case(MRN),case(ExAmPlE),example2,example3
+ Enter basic patterns to search for separated by ',' (e.g., 'birth_dt_tm,dob,mrn' or 'none' if you don't have any):
+ case(DOB),case(MRN),case(ExAmPlE),example2,example3
 ```
 
 # User input
