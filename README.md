@@ -37,6 +37,22 @@ Enter the directories to exclude separated by ',' (e.g., 'C:\Users\temp,D:\Data\
    Starting search in N:\cclprod including subdirectories...
 
 ```
+Another example using different directories to search in and using advanced patterns instead of basic patterns (you are allowed to use both in same search. I chose not to for this example)
+```
+1) You are set to search inside of directories ['N:\\cclprod']. Would you like to change your search directories? (y/n)
+y
+
+2) Enter new directories separated by ',' (e.g., 'C:\Users\,D:\Data'): N:\cclprod, N:\InterfaceScripts
+The following directories are set for search:
+ - N:\cclprod
+ - N:\InterfaceScripts
+
+3) Enter basic patterns to search for separated by ',' (e.g., 'birth_dt_tm,dob,mrn' or 'none' if you don't have any): none
+No basic patterns entered. Using only advanced patterns specified in advanced_patterns[] array.
+
+4) Enter file extensions to search for separated by ',' (e.g., 'txt,prg,bak,dpb' or '*' for any): *
+...
+```
 # Goal
 ### input:
 #### choice #1
