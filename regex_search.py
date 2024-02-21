@@ -119,21 +119,22 @@ def get_user_confirmation(prompt):
         answer = input("Please enter 'yes', 'no', or 'back': ").lower()
     return answer
 
-
-
+def generate_filename_prefix(specific_dirs, basic_patterns, max_length=60):
+    """Generate a concise filename prefix within the max_length limit."""
+    dir_names = "_".join([os.path.basename(dir_path) for dir_path in specific_dirs])
+    patterns_str = "_".join(basic_patterns).replace('*', 'all')
+    
+    # Construct the base filename and ensure it does not exceed max_length
+    base_filename = f"{dir_names}_{patterns_str}_matches"
+    if len(base_filename) > max_length:
+        return base_filename[:max_length-6] + "...-"
+    return base_filename
 
 def save_matches(df, output_type, specific_dirs, basic_patterns):
     """Save the DataFrame of matches to a file in the specified format."""
-
-    # Extract the basename of each directory and join them with "_"
-    dir_names = [os.path.basename(os.path.normpath(dir_path)) for dir_path in specific_dirs]
-    dir_names_str = "_".join(dir_names)
-    
-    # Join the patterns with "_"
-    patterns_str = "_".join(basic_patterns).replace('*', 'all')  # Replace '*' to avoid invalid filename
     
     # Construct the filename prefix
-    filename_prefix = f"{dir_names_str}_{patterns_str}_matches" if basic_patterns else f"{dir_names_str}_matches"
+    filename_prefix = generate_filename_prefix(specific_dirs, basic_patterns)
     
     if not df.empty:
         filename = f"{filename_prefix}.{output_type}"
