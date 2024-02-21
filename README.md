@@ -115,6 +115,10 @@ re.compile(r"""
     ] 
    
 ```
+### If you want to ignore case with advanced patterns:
+```bash
+re.compile(r"\.event_cd\s*=\s*ALLERGIES", re.IGNORECASE)
+```
 
 
 ## Things I find usefull
