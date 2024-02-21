@@ -9,6 +9,34 @@ regex_search is a multithreading Python tool designed to search for regular expr
 ### advanced_patterns[] array might be the only thing you would ever touch in the python code if you wanted to do so.
 ### can be whichever regex patters you specify in the advanced_patterns array. examples shown below
 
+# User input
+### When you run the program with python regex_search.py in your project folder (wherever you stored the regex_search.py file), the command line interface will walk you through all of the steps for filtering your search with brief explinations on what you would need to enter.
+
+### example of prompt
+```bash
+1) You are set to search inside of directories ['N:\\cclprod']. Would you like to change your search directories? (y/n) n
+2) Enter basic patterns to search for separated by ',' (e.g., 'birth_dt_tm,dob,mrn' or 'none' if you don't have any): dob,micro
+3) Enter file extensions to search for separated by ',' (e.g., 'txt,prg,bak,dpb' or '*' for any): prg,dbp
+4) Enter the output file type (e.g., 'csv', 'xlsx'): xlsx
+5) Enter file path keywords to ignore separated by ',' (e.g., 'backup,bkp' or 'none' if you don't have any). 
+You can also enter the a file to ignore with the full path (e.g., 'C:\Users\temp\file.txt'): backup,bkp
+6)
+Select search option:
+1) Search specified directories recursively (Top-level and subdirectories)
+2) Search top level files only (No subdirectories)
+3) Exit
+Enter your choice: 1
+
+# I will go with 1 in this case
+
+7) Are there any directories/subdirectories that you want to exclude? (y/n): y
+Enter the directories to exclude separated by ',' (e.g., 'C:\Users\temp,D:\Data\backup'): N:\cclprod\bhs_rpt_item_master_cdm
+
+The valid excluded dirs are:
+ - N:\cclprod\bhs_rpt_item_master_cdm
+Starting search in N:\cclprod including subdirectories...
+
+```
 # Goal
 ### input:
 #### choice #1
