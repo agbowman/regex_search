@@ -13,6 +13,7 @@ regex_search is a multithreading Python tool designed to search for regular expr
 
 ```
  Enter basic patterns to search for separated by ',' (e.g., 'birth_dt_tm,dob,mrn' or 'none' if you don't have any):
+
  case(DOB),case(MRN),case(ExAmPlE),example2,example3
 ```
 
