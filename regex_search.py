@@ -235,6 +235,7 @@ def main_menu():
        
         
         if choice == "1":
+            exclude_dirs = []
             exclude_input = input("Are there any directories/subdirectories that you want to exclude? (y/n): ").strip().lower()
             if exclude_input == 'y':
                 exclude_dirs_input = input("Enter the directories to exclude separated by ',' (e.g., 'C:\\Users\\temp,D:\\Data\\backup'): ").strip()
