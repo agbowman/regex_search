@@ -115,7 +115,7 @@ re.compile(r"""
     ] 
    
 ```
-### If you want to ignore case with advanced patterns:
+### If you want to ignore case with advanced patterns, or add variable spacing between items such as an equal sign:
 ```bash
 re.compile(r"\.event_cd\s*=\s*ALLERGIES", re.IGNORECASE)
 ```
