@@ -5,8 +5,22 @@ import concurrent.futures
 
 # Combined Patterns (Both Basic and Advanced)
 def compile_all_patterns(basic_patterns, advanced_patterns):
-    compiled_basic = [re.compile(pattern, re.IGNORECASE) for pattern in basic_patterns]
+    compiled_basic = []
+    case_sensitive_pattern = re.compile(r'^case\((.*?)\)$')  # Regex to match 'case(word)'
+
+    for pattern in basic_patterns:
+        match = case_sensitive_pattern.match(pattern)
+        if match:
+            # If pattern matches 'case(word)', compile without IGNORECASE for case sensitivity
+            compiled_pattern = re.compile(match.group(1))
+        else:
+            # Otherwise, compile with IGNORECASE for case insensitivity
+            compiled_pattern = re.compile(pattern, re.IGNORECASE)
+        compiled_basic.append(compiled_pattern)
+
+    # Return the combined list of compiled basic (with mixed case sensitivity) and advanced patterns
     return compiled_basic + advanced_patterns
+
 
 
 
