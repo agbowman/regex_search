@@ -9,7 +9,11 @@ regex_search is a multithreading Python tool designed to search for regular expr
 ### can be whichever regex patters you specify in the advanced_patterns array. examples shown below
 
 # Basic patterns (also optional, but recommended):
-### are case insensitive
+### are case insensitive by default. if you want to use case sensitive words at the command line just wrap "case()" around your word. example:
+
+```bash
+ Enter basic patterns to search for separated by ',' (e.g., 'birth_dt_tm,dob,mrn' or 'none' if you don't have any): case(DOB),case(MRN),case(ExAmPlE),example2,example3
+```
 
 # User input
 ### When you run the program with python regex_search.py in your project folder (wherever you stored the regex_search.py file), the command line interface will walk you through all of the steps for filtering your search with brief explinations on what you would need to enter. There are checks in place to make sure you entered a valid path. please look out for those messages! 
