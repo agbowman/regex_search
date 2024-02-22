@@ -87,8 +87,8 @@ def make_unique_selected_data_to_regex(unique_selected_data):
         
         # Create a regex pattern for each column and write them in re.compile format
         for header, data in unique_selected_data.items():
-            # Escape special characters and join the data with '|'
-            escaped_data = [re.escape(str(value)) for value in data]
+            # Escape special characters, add word boundaries, and join the data with '|'
+            escaped_data = [r"\b" + re.escape(str(value)) + r"\b" for value in data]
             regex_pattern = '|'.join(escaped_data)
             # Write the pattern to the file, wrapped in a call to re.compile(), followed by a comma
             file.write(f"    re.compile(r\"{regex_pattern}\"),\n")
@@ -96,10 +96,9 @@ def make_unique_selected_data_to_regex(unique_selected_data):
         # Write the closing bracket for the array
         file.write("]\n")
     print("Regex patterns written to regex.txt")
-    print("here are the regex patterns: ")
+    print("Here are the regex patterns: ")
     with open('regex.txt', 'r') as file:
         print(file.read())
-        
 
 
 # Helper function to verify file existence
