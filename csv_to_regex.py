@@ -80,25 +80,35 @@ def select_and_display_columns(csv_filepath):
     return unique_selected_data
 
 def make_unique_selected_data_to_regex(unique_selected_data):
+    # Ask the user if they want the regex to be case-insensitive
+    case_insensitive = input("Would you like the regex to be case-insensitive? (yes/no): ").lower().startswith('y')
+    
     # Open a file named 'regex.txt' in write mode
     with open('regex.txt', 'w') as file:
         # Write the beginning of the array declaration
         file.write("advanced_patterns = [\n")
+        
+        # Determine the regex flag based on user choice
+        regex_flag = "re.IGNORECASE" if case_insensitive else ""
         
         # Create a regex pattern for each column and write them in re.compile format
         for header, data in unique_selected_data.items():
             # Escape special characters, add word boundaries, and join the data with '|'
             escaped_data = [r"\b" + re.escape(str(value)) + r"\b" for value in data]
             regex_pattern = '|'.join(escaped_data)
-            # Write the pattern to the file, wrapped in a call to re.compile(), followed by a comma
-            file.write(f"    re.compile(r\"{regex_pattern}\"),\n")
+            # Write the pattern to the file, wrapping it in a call to re.compile() with the chosen flag
+            if regex_flag:
+                file.write(f"    re.compile(r\"{regex_pattern}\", {regex_flag}),\n")
+            else:
+                file.write(f"    re.compile(r\"{regex_pattern}\"),\n")
         
         # Write the closing bracket for the array
         file.write("]\n")
-    print("Regex patterns written to regex.txt")
+    print("Regex patterns written to regex.txt based on your case sensitivity preference.")
     print("Here are the regex patterns: ")
     with open('regex.txt', 'r') as file:
         print(file.read())
+
 
 
 # Helper function to verify file existence
