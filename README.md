@@ -105,7 +105,7 @@ re.compile(r"\.event_cd\s*=\s*ALLERGIES", re.IGNORECASE)
 
 Just run csv_to_regex.py with python csv_to_regex.py 
 ```
-1) Enter the path to your CSV file: Ad Hoc Query.csv
+1) Enter the path to your CSV file: Ad Hoc Query.csv    <- (this would just be a relative path, you can just place the csv file in where the python script is and use the name of the csv)
 2) Available columns in the CSV file:
      1. CODE_VALUE
      2. DISPLAY
@@ -116,8 +116,29 @@ Just run csv_to_regex.py with python csv_to_regex.py
 3) Which columns do you want to use? (Enter as a comma-separated list): CODE_VALUE,CKI
 4) Do you want to strip trailing .0 from float values? (yes/no): yes
 5)
+
+CODE_VALUE:
+     ...
+     20. 64092637
+     21. 562709540
+     22. 564177390
+     23. 64092638
+     24. 564177370
+     ...
+
     Which rows would you like to use from CODE_VALUE? Please enter like: 1-5,8-10,20 or * for all rows: *
-    Which rows would you like to use from CKI? Please enter like: 1-5,8-10,20 or * for all rows: 1-20,60 
+
+
+ CKI:
+    ...
+    138. CKI.CODEVALUE!4102993476
+    139. CKI.CODEVALUE!4104641397
+    140. CKI.CODEVALUE!2570057763
+    141. CKI.CODEVALUE!3250741
+    ...
+
+   Which rows would you like to use from CKI? Please enter like: 1-5,8-10,20 or * for all rows: 1-20,60
+
 6) Regex patterns written to regex.txt
 
 
