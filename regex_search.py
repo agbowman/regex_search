@@ -603,7 +603,17 @@ def select_search_directory():
         else:
             print("Invalid input. Please enter 'y' for yes or 'n' for no.")
 
-
+def clear_all_patterns():
+    global basic_patterns, advanced_patterns, custom_patterns
+    print("Are you sure you want to clear all patterns? This action cannot be undone.")
+    confirm_clear = input("Enter 'yes' to clear all patterns: ").strip().lower()
+    if confirm_clear == 'yes':
+        basic_patterns.clear()
+        advanced_patterns.clear()
+        custom_patterns.clear()
+        print("All patterns cleared.")
+    else:
+        print("No patterns were cleared.")
 
 def validate_directories(dir_paths):
     """Validate the given list of directory paths and return two lists: valid and invalid directories."""
@@ -619,7 +629,9 @@ def pattern_management():
         print("2) Add patterns from CSV")
         print("3) Test current patterns against test strings")
         print("4) Add custom patterns (Future feature)")
-        print("5) Back")
+        print("5) View current patterns")
+        print("6) Clear all patterns")
+        print("7) Back")
         choice = input("Enter your choice: ")
         
         if choice == "1":
@@ -631,6 +643,10 @@ def pattern_management():
         elif choice == "4":
             add_custom_patterns()
         elif choice == "5":
+            view_current_patterns()
+        elif choice == "6":
+            clear_all_patterns()
+        elif choice == "7":
             break
         else:
             print("Invalid choice. Please enter a number from the menu.")
