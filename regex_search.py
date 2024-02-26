@@ -114,63 +114,71 @@ def make_unique_selected_data_to_regex(unique_selected_data):
     
     return pattern_objects
 
+
 def select_and_display_columns(csv_filepath):
-    # Read the CSV into a DataFrame
     df = pd.read_csv(csv_filepath)
     
-    # Create a mapping of lowercase column names to original column names
     original_headers = df.columns.tolist()
     lower_to_original = {header.lower(): header for header in original_headers}
     
-    # Display available headers (in original case)
-    print("Available columns in the CSV file:")
-    for idx, header in enumerate(original_headers, 1):
-        print(f"{idx}. {header}")
-    
-    # User input for column selection (converted to lower case for case-insensitive matching)
-    selected_headers_input = input("Which columns do you want to use? (Enter as a comma-separated list): ").lower()
-    selected_headers = [header.strip() for header in selected_headers_input.split(',')]
-    
-    # Map the lowercase user input back to the original case column names
-    selected_headers = [lower_to_original[header] for header in selected_headers if header in lower_to_original]
-    
-    if not selected_headers:
-        print("None of the entered column headers were found. Please check for typos and try again.")
-        return {}
-    print(f"Selecting data from {', '.join(selected_headers)}")
-    
-    # Ask user if they want to strip trailing .0 from floats
-    strip_trailing_zero = input("Do you want to strip trailing .0 from float values? (yes/no): ").lower().startswith('y')
-    
-    # Display the data for the selected columns and ask for rows to include
-    unique_selected_data = {}
-    for header in selected_headers:
-        print(f"\nData for column '{header}':")
-        for idx, value in enumerate(df[header], 1):
-            if strip_trailing_zero and isinstance(value, float) and value.is_integer():
-                value = int(value)  # Convert float to int if it's a whole number
-            print(f"{idx}. {value}")
+    while True:
+        print("\nAvailable columns in the CSV file:")
+        for idx, header in enumerate(original_headers, 1):
+            print(f"{idx}. {header}")
 
-        row_selection = input(f"Which rows would you like to use from {header}? "
-                              "Please enter like: 1-5,8-10,20 or * for all rows: ")
-        selected_rows = get_row_indices_from_input(row_selection, len(df))
-        # Use set to get unique values and then convert back to list to maintain DataFrame compatibility
-        selected_data = df.iloc[selected_rows][header].dropna().tolist()
-        if strip_trailing_zero:
-            selected_data = [int(value) if isinstance(value, float) and value.is_integer() else value for value in selected_data]
-        unique_selected_data[header] = list(set(selected_data))
-  
-    if not unique_selected_data:  # Check if unique_selected_data is empty
-        print("No rows selected for any column.")
-        return {}  # Return an empty dictionary if no data was selected
+        selected_headers_input = input("\nIf you would like to go back type 'back'.\nWhich columns do you want to use? (Enter as a comma-separated list or type 'back' to return): ").lower()
+        if selected_headers_input == 'back':
+            return {}
+        
+        selected_headers = [header.strip() for header in selected_headers_input.split(',')]
+        selected_headers = [lower_to_original.get(header, '') for header in selected_headers]
+        selected_headers = [header for header in selected_headers if header]  # Filter out invalid selections
+        
+        if not selected_headers:
+            print("None of the entered column headers were found. Please check for typos and try again.")
+            continue
 
-    # Display the rows selected for each column
-    print("\nHere are the unique rows selected for each column:")
-    for header, data in unique_selected_data.items():
-        print(f"{header}: {data}")
+        print(f"Selecting data from {', '.join(selected_headers)}")
+        confirmation = input("Proceed with these columns? (yes/no/back): ").lower()
+        if confirmation == 'back':
+            continue  # Allows the user to re-select columns
+        elif confirmation != 'yes':
+            return 'back'  # Exits the function entirely
 
-    # Return the collected data at the end
-    return unique_selected_data
+        strip_trailing_zero_answered = False
+        while not strip_trailing_zero_answered:
+            strip_trailing_zero = input("Do you want to strip trailing .0 from float values? (yes/no/back): ").lower()
+            if strip_trailing_zero == 'back':
+                break  # Exits the strip_trailing_zero loop to allow re-selection of columns
+            elif strip_trailing_zero in ['yes', 'no']:
+                strip_trailing_zero_answered = True  # Proceed to the next step
+            else:
+                print("Please enter 'yes', 'no', or 'back'.")
+
+        if not strip_trailing_zero_answered:
+            continue  # If 'back' was chosen, restart the loop from column selection
+
+        unique_selected_data = {}
+        for header in selected_headers:
+            print(f"\nData for column '{header}':")
+            for idx, value in enumerate(df[header].unique(), 1):
+                print(f"{idx}. {value}")
+
+            row_selection = input(f"Which rows would you like to use from {header}? (Enter like: 1-5,8-10,20 or * for all rows or type 'back' to return): ")
+            if row_selection == 'back':
+                return 'back'  # Allow the user to go back from row selection
+
+            selected_rows = get_row_indices_from_input(row_selection, len(df))
+            selected_data = df.iloc[selected_rows][header].dropna().unique().tolist()
+            if strip_trailing_zero == 'yes':
+                selected_data = [int(value) if isinstance(value, float) and value.is_integer() else value for value in selected_data]
+            unique_selected_data[header] = list(set(selected_data))
+
+        print("\nHere are the unique rows selected for each column:")
+        for header, data in unique_selected_data.items():
+            print(f"{header}: {data}")
+
+        return unique_selected_data
 
 
 
@@ -260,17 +268,22 @@ def search_file(file_path, pattern_objects):
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
             for obj in pattern_objects:
-                # Compile the regex pattern on-the-fly based on the object
-                regex_flag = 0 if obj['sensitivity'] == 'case-sensitive' else re.IGNORECASE
-                pattern = re.compile(obj['pattern'], regex_flag)
+                # Check if it's a custom pattern
+                if obj.get('isCustomPattern'):
+                    # Compile without additional flags
+                    pattern = re.compile(obj['pattern'])
+                else:
+                    # Compile with flags based on object properties
+                    regex_flag = 0 if obj.get('sensitivity', '') == 'case-sensitive' else re.IGNORECASE
+                    pattern = re.compile(obj['pattern'], regex_flag)
 
                 for i, line in enumerate(lines, 1):
                     if pattern.search(line):
-                        # Use the original pattern string for logging
                         matches.append((file_path, obj['pattern'], line.strip(), i))
     except UnicodeDecodeError:
         print(f"Skipping file due to encoding issues: {file_path}")
     return matches
+
 
 def search_files(directory, patterns, file_extensions, include_subdirs=True, exclude_dirs=None, ignore_paths_keywords=None):
     matches_dict = {}
@@ -367,22 +380,24 @@ def get_user_confirmation(prompt):
         answer = input("Please enter 'yes', 'no', or 'back': ").lower()
     return answer
 
+
 def generate_filename_prefix(specific_dirs, basic_patterns, max_length=60):
     """Generate a concise filename prefix within the max_length limit."""
     dir_names = "_".join([os.path.basename(dir_path) for dir_path in specific_dirs])
     
-    # Handle both strings (or compiled regexes) and dictionaries in basic_patterns
-    patterns_str = "_".join([
-        obj['pattern'] if isinstance(obj, dict) else str(obj)
-        for obj in basic_patterns
-    ]).replace('*', 'all').replace('\\b', '')
+    # Sanitize each pattern to remove or replace invalid filename characters
+    sanitized_patterns = []
+    for pattern in basic_patterns:
+        sanitized = re.sub(r'[\\/*?:"<>|]+', "_", pattern)  # Replace invalid characters with an underscore
+        sanitized_patterns.append(sanitized)
+    
+    patterns_str = "_".join(sanitized_patterns).replace('*', 'all').replace('\\b', '')
 
     # Construct the base filename and ensure it does not exceed max_length
     base_filename = f"{dir_names}_{patterns_str}_matches"
     if len(base_filename) > max_length:
-        return base_filename[:max_length-6] + "..."
+        return base_filename[:max_length-3] + "..."
     return base_filename
-
 
 def save_matches(df, output_type, specific_dirs, basic_patterns):
     """Save the DataFrame of matches to a file in the specified format."""
@@ -415,9 +430,9 @@ def test_current_patterns_against_test_strings():
     print("2) Test advanced patterns")
     print("3) Test custom patterns")
     print("4) Test all patterns")
+    print("5) Back")
     pattern_choice = input("Enter your choice (1/2/3/4): ").strip()
 
-    # Filter the compiled_patterns list based on user selection
     if pattern_choice == '1':
         pattern_objects = basic_patterns
     elif pattern_choice == '2':
@@ -426,16 +441,19 @@ def test_current_patterns_against_test_strings():
         pattern_objects = custom_patterns
     elif pattern_choice == '4':
         pattern_objects = basic_patterns + advanced_patterns + custom_patterns
+    elif pattern_choice == '5':
+        return
     else:
         print("Invalid choice. Testing all patterns by default.")
         pattern_objects = basic_patterns + advanced_patterns + custom_patterns
 
-    # Display the patterns selected for testing
     print("\nPatterns selected for testing:")
     for obj in pattern_objects:
-        print(f" - Pattern: {obj['pattern']}, Sensitivity: {obj['sensitivity']}, Whole word: {obj['whole']}")
+        if obj.get('isCustomPattern'):
+            print(f" - Custom Pattern: {obj['pattern']}")
+        else:
+            print(f" - Pattern: {obj['pattern']}, Sensitivity: {obj.get('sensitivity', 'N/A')}, Whole word: {obj.get('whole', 'N/A')}")
 
-    # Predefined default test strings
     default_test_strings = [
         'This is a test for caffeine.',
         # Add the rest of your test strings here...
@@ -451,17 +469,27 @@ def test_current_patterns_against_test_strings():
     else:
         test_strings = default_test_strings
 
-    # Compile the patterns on-the-fly and test each string against them
     for test_string in test_strings:
         print(f"\nTesting: \"{test_string}\"")
         for obj in pattern_objects:
-            regex_flag = 0 if obj['sensitivity'] == 'case-sensitive' else re.IGNORECASE
-            pattern = re.compile(obj['pattern'], regex_flag)
+            # Adjust the logic to skip the sensitivity and whole flags for custom patterns
+            if obj.get('isCustomPattern'):
+                pattern = re.compile(obj['pattern'])  # Directly compile without flags
+            else:
+                regex_flag = 0 if obj.get('sensitivity', 'case-insensitive') == 'case-sensitive' else re.IGNORECASE
+                pattern = re.compile(obj['pattern'], regex_flag)
+            
             match = pattern.search(test_string)
             if match:
-                print(f"Match found: \"{match.group()}\" with pattern: {obj['pattern']} (Whole word: {obj['whole']}) and Sensitivity: {obj['sensitivity']}")
+                match_info = f"Match found: \"{match.group()}\" with pattern: {obj['pattern']}"
+                if not obj.get('isCustomPattern'):
+                    match_info += f" (Whole word: {obj.get('whole', 'N/A')}) and Sensitivity: {obj.get('sensitivity', 'N/A')}"
+                print(match_info)
             else:
-                print(f"No match for pattern: {obj['pattern']} (Whole word: {obj['whole']}) and Sensitivity: {obj['sensitivity']}")
+                no_match_info = f"No match for pattern: {obj['pattern']}"
+                if not obj.get('isCustomPattern'):
+                    no_match_info += f" (Whole word: {obj.get('whole', 'N/A')}) and Sensitivity: {obj.get('sensitivity', 'N/A')}"
+                print(no_match_info)
 
 def add_basic_patterns():
     global basic_patterns
@@ -513,83 +541,79 @@ def list_regex_examples():
         ("(?<=@)\\w+", "Matches a word following '@' character without including '@'.", "Example match: 'user' in '@user'", "Example non-match: 'user' in 'user@'"),
     ]
 def add_custom_patterns():
+    global custom_patterns
     while True:
         print("\nWould you like to:")
         print("1) Enter your custom regex pattern manually.")
         print("2) Read in regex from a text file.")
-        choice = input("Please enter 1 or 2: ").strip()
+        print("3) Back")
+        choice = input("Please enter 1 or 2 to continue or 3 to go back: ").strip()
+        
 
         if choice == '1':
-            print("\n***************************************************************************************************************************************************************")
-            print("Regex pattern examples:")
-            regex_examples = list_regex_examples()
-            for pattern, description, example_match, example_non_match in regex_examples:
-                print(f" - Pattern: '{pattern}' => {description}\n   Example match: {example_match}\n   Example non-match: {example_non_match}\n")
+            display_examples = input("Do you want to see some regex examples? (yes/no): ").strip().lower()
+            if display_examples == 'yes':
+                print("\nSome regex examples:")
+                for i, (pattern, description, match_example, non_match_example) in enumerate(list_regex_examples(), 1):
+                    print(f"{i}) {description}")
+                    print(f"   - {pattern}")
+                    print(f"   - Example match: {match_example}")
+                    print(f"   - Example non-match: {non_match_example}")
+                print()
             custom_pattern = input("Enter your custom regex pattern: ").strip()
-            # Compile the pattern before adding
             try:
-                compiled_custom_pattern = re.compile(custom_pattern)
-                custom_patterns.append(compiled_custom_pattern)  # Add the compiled pattern
+                # Directly store the pattern string with an isCustomPattern flag
+                custom_patterns.append({'pattern': custom_pattern, 'isCustomPattern': True})
                 print("Custom pattern added.")
             except re.error as e:
                 print(f"Regex error: {e}. Please enter a valid regex pattern.")
         elif choice == '2':
-            file_path = select_text_file()  # Use the select_text_file function
-            if file_path:  # Check if a file was selected
-                invalid_patterns = []  # To keep track of invalid patterns
+            file_path = select_text_file()
+            if file_path:
                 with open(file_path, "r") as file:
                     for line in file:
                         custom_pattern = line.strip()
-                        if custom_pattern:  # Ensure non-empty pattern
-                            try:
-                                # Attempt to compile the custom pattern
-                                compiled_custom_pattern = re.compile(custom_pattern)
-                                custom_patterns.append(compiled_custom_pattern)  # Add the compiled pattern
-                            except re.error as e:
-                                # If an error occurs, add the pattern to the list of invalid patterns
-                                invalid_patterns.append(custom_pattern)
-                if invalid_patterns:
-                    print(f"Some patterns were invalid and not added: {', '.join(invalid_patterns)}")
-                else:
-                    print(f"Custom patterns added from {file_path}.")
+                        if custom_pattern:
+                            custom_patterns.append({'pattern': custom_pattern, 'isCustomPattern': True})
+                print(f"Custom patterns added from {file_path}.")
             else:
                 print("No file was selected.")
+        elif choice == '3':
+            break
 
         else:
             print("Invalid choice. Please enter 1 or 2.")
             continue
+        test_pattern = input("Do you want to test the custom pattern against example strings? (yes/no): ").strip().lower()
+        while test_pattern == 'yes':
+            test_current_patterns_against_test_strings()
+            test_pattern = input("Do you want to test the custom pattern again? (yes/no): ").strip().lower()
 
-        # Proceed to test the patterns
-        test_current_patterns_against_test_strings()
-        
         add_more = input("\nDo you want to add more custom patterns? (yes to add more, anything else to finish): ").strip().lower()
-        if add_more != 'yes':  # More explicit check
+        if add_more != 'yes':
             break
 
 def view_current_patterns():
     print("Currently applied patterns:")
-    def format_pattern_obj(obj):
-        return f"{{Pattern: '{obj['pattern']}', Sensitivity: '{obj['sensitivity']}', Whole word: {obj['whole']}}}"
-
-    # Display basic patterns by extracting the pattern string from the compiled regex objects
+    
+    # Display basic patterns
     if basic_patterns:
-        processed_basic_patterns = [format_pattern_obj(obj) for obj in basic_patterns]
-        print("Basic patterns:", processed_basic_patterns)
-    else:
-        print("Basic patterns: []")
+        print("Basic patterns:")
+        for obj in basic_patterns:
+            print(f" - Pattern: {obj['pattern']}, Sensitivity: {obj.get('sensitivity', 'N/A')}, Whole word: {obj.get('whole', 'N/A')}")
 
-    # Display advanced patterns in a similar manner, since they are also compiled regex objects
+    # Display advanced patterns from CSV
     if advanced_patterns:
-        advanced_patterns_str = [format_pattern_obj(obj) for obj in advanced_patterns]
-        print("Advanced patterns from CSV: [", ", ".join(advanced_patterns_str), "]")
-    else:
-        print("Advanced patterns from CSV: []")
-    # If you have custom patterns, display them similarly
+        print("Advanced patterns from CSV:")
+        for obj in advanced_patterns:
+            print(f" - Pattern: {obj['pattern']}, Sensitivity: {obj.get('sensitivity', 'N/A')}, Whole word: {obj.get('whole', 'N/A')}")
+
+    # Display custom patterns, handling them differently
     if custom_patterns:
-        processed_custom_patterns = [pattern.pattern for pattern in custom_patterns]
-        print("Custom patterns:", processed_custom_patterns)
-    else:
-        print("Custom patterns: []")
+        print("Custom patterns:")
+        for obj in custom_patterns:
+            # Directly display the pattern for custom patterns
+            print(f" - Custom Pattern: {obj['pattern']}")
 
 
 def view_current_directories():
@@ -656,6 +680,70 @@ def clear_all_patterns():
     else:
         print("No patterns were cleared.")
 
+def clear_patterns():
+    global basic_patterns, advanced_patterns, custom_patterns
+    while True:
+        print("\nClear Patterns:")
+        print("1) Clear all basic patterns")
+        print("2) Clear all advanced patterns")
+        print("3) Clear all custom patterns")
+        print("4) Clear a specific basic pattern")
+        print("5) Clear a specific advanced pattern")
+        print("6) Clear a specific custom pattern")
+        print("7) Back")
+        choice = input("Enter your choice: ").strip()
+
+        if choice == "1":
+            if confirm_clear("basic"):
+                basic_patterns.clear()
+        elif choice == "2":
+            if confirm_clear("advanced"):
+                advanced_patterns.clear()
+        elif choice == "3":
+            if confirm_clear("custom"):
+                custom_patterns.clear()
+        elif choice in ["4", "5", "6"]:
+            pattern_list = basic_patterns if choice == "4" else advanced_patterns if choice == "5" else custom_patterns
+            clear_specific_pattern(pattern_list)
+        elif choice == "7":
+            break
+        else:
+            print("Invalid choice. Please enter a number from the menu.")
+
+def confirm_clear(pattern_type):
+    print(f"Are you sure you want to clear all {pattern_type} patterns? This action cannot be undone.")
+    confirm_clear = input("Enter 'yes' to clear: ").strip().lower()
+    if confirm_clear == 'yes':
+        print(f"All {pattern_type} patterns cleared.")
+        return True
+    else:
+        print("No patterns were cleared.")
+        return False
+
+def clear_specific_pattern(pattern_list):
+    if not pattern_list:
+        print("There are no patterns to clear.")
+        return
+
+    print("\nSelect a pattern to clear:")
+    for idx, pattern in enumerate(pattern_list, 1):
+        pattern_display = pattern['pattern'] if isinstance(pattern, dict) else pattern
+        print(f"{idx}) {pattern_display}")
+    
+    choice = input("Enter the number of the pattern to clear, or 'back' to return: ").strip().lower()
+    if choice.isdigit():
+        index = int(choice) - 1
+        if 0 <= index < len(pattern_list):
+            removed_pattern = pattern_list.pop(index)
+            print(f"Pattern removed: {removed_pattern}")
+        else:
+            print("Invalid choice. No pattern removed.")
+    elif choice == 'back':
+        return
+    else:
+        print("Please enter a valid number or 'back'.")
+
+
 def validate_directories(dir_paths):
     """Validate the given list of directory paths and return two lists: valid and invalid directories."""
     valid_dirs = [dir_path for dir_path in dir_paths if os.path.isdir(dir_path)]
@@ -669,9 +757,9 @@ def pattern_management():
         print("1) Add basic patterns")
         print("2) Add patterns from CSV")
         print("3) Test current patterns against test strings")
-        print("4) Add custom patterns (Future feature)")
+        print("4) Add custom patterns")
         print("5) View current patterns")
-        print("6) Clear all patterns")
+        print("6) Clear patterns")
         print("7) Back")
         choice = input("Enter your choice: ")
         
@@ -686,12 +774,12 @@ def pattern_management():
         elif choice == "5":
             view_current_patterns()
         elif choice == "6":
-            clear_all_patterns()
+            clear_patterns()
         elif choice == "7":
             break
         else:
             print("Invalid choice. Please enter a number from the menu.")
-
+            
 def search_directory_configuration():
     global specific_dirs
     while True:
@@ -816,6 +904,11 @@ def start_search():
     print("- Patterns:", pattern_strings)  # Display the extracted pattern strings
     print("- Include Subdirectories:", "Yes" if include_subdirs else "No")
 
+
+    confirm_search = input("Are you ready to start the search? (yes/no): ").strip().lower()
+    if confirm_search != 'yes':
+        print("Search canceled. Returning to main menu...")
+        return  # Ex
     print("\nStarting search...")
     # Placeholder for search logic; implement the search using the search_files function
 
