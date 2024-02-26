@@ -70,6 +70,50 @@ def get_row_indices_from_input(user_input, max_rows):
         print(f"Error: {e}")
         return []
 
+
+
+def open_csv():
+    csv_file_path = select_csv_file()
+    if csv_file_path:  # Check if a file was selected
+        print(f"File selected: {csv_file_path}")
+        unique_selected_data = select_and_display_columns(csv_file_path)
+        if unique_selected_data:  # Ensure unique_selected_data is not empty
+            compiled_patterns = make_unique_selected_data_to_regex(unique_selected_data)
+            return compiled_patterns  # Return the compiled regex patterns
+        else:
+            print("No data was selected or an error occurred.")
+            return []  # Return an empty list if there's an error or no data
+    else:
+        print("No CSV file was selected.")
+        return []  # Return an empty list if no file was selected
+def make_unique_selected_data_to_regex(unique_selected_data):
+    # Ask the user if they want the regex to be case-sensitive
+    case_sensitive = input("Would you like the regex to be case-sensitive? (yes/no): ").lower().startswith('y')
+    sensitivity = "case-sensitive" if case_sensitive else "case-insensitive"
+
+    # Ask the user if they want whole word matching
+    whole_word = input("Would you like to match whole words only? (yes/no): ").lower().startswith('y')
+
+    pattern_objects = []
+    for header, data in unique_selected_data.items():
+        # Apply whole word boundaries (\b) if whole word matching is desired
+        if whole_word:
+            escaped_data = [r"\b" + re.escape(str(value)) + r"\b" for value in data]
+        else:
+            escaped_data = [re.escape(str(value)) for value in data]
+
+        regex_pattern = '|'.join(escaped_data)
+        
+        # Create a pattern object with the desired configuration
+        pattern_object = {
+            'pattern': regex_pattern,
+            'sensitivity': sensitivity,
+            'whole': whole_word
+        }
+        pattern_objects.append(pattern_object)
+    
+    return pattern_objects
+
 def select_and_display_columns(csv_filepath):
     # Read the CSV into a DataFrame
     df = pd.read_csv(csv_filepath)
@@ -129,50 +173,11 @@ def select_and_display_columns(csv_filepath):
     return unique_selected_data
 
 
-def make_unique_selected_data_to_regex(unique_selected_data):
-    case_insensitive = input("Would you like the regex to be case-insensitive? (yes/no): ").lower().startswith('y')
-    regex_flag = re.IGNORECASE if case_insensitive else 0
 
-    compiled_patterns = []
-    for header, data in unique_selected_data.items():
-        # Include word boundaries (\b) in each pattern
-        escaped_data = [r"\b" + re.escape(str(value)) + r"\b" for value in data]
-        regex_pattern = '|'.join(escaped_data)
-        compiled_pattern = re.compile(regex_pattern, regex_flag)
-        compiled_patterns.append(compiled_pattern)
-    
-    return compiled_patterns
-
-
-
-# Helper function to verify file existence
-# def verify_file_exists(filepath):
-#     if os.path.exists(filepath):
-#         print(f"File found: {filepath}")
-#         return True
-#     else:
-#         print(f"File not found: {filepath}")
-#         print("Please enter the correct file path.")
-#         return False
-
-# Main part of the script
-def open_csv():
-    csv_file_path = select_csv_file()
-    if csv_file_path:  # Check if a file was selected
-        print(f"File selected: {csv_file_path}")
-        unique_selected_data = select_and_display_columns(csv_file_path)
-        if unique_selected_data:  # Ensure unique_selected_data is not empty
-            compiled_patterns = make_unique_selected_data_to_regex(unique_selected_data)
-            return compiled_patterns  # Return the compiled regex patterns
-        else:
-            print("No data was selected or an error occurred.")
-            return []  # Return an empty list if there's an error or no data
-    else:
-        print("No CSV file was selected.")
-        return []  # Return an empty list if no file was selected
-
-
-
+def add_patterns_from_csv():
+    global advanced_patterns
+    advanced_patterns.extend(open_csv())  # Assuming open_csv() returns a list of patterns
+    print("Patterns from CSV added.")
 
 
 
@@ -205,19 +210,17 @@ def specify_dirs_to_exclude():
     else:
         print("No changes made to directories to exclude.")
 
-
-
 def process_pattern(pattern):
     # Initialize the final pattern variable
     final_pattern = pattern
 
-    # Patterns to match the 'case' and 'whole' directives
-    case_pattern = re.compile(r'^case\((.*)\)$')
-    whole_pattern = re.compile(r'^whole\((.*)\)$')
-
     # Flags for detected directives
     is_case = False
     is_whole = False
+
+    # Patterns to match the 'case' and 'whole' directives
+    case_pattern = re.compile(r'^case\((.*)\)$')
+    whole_pattern = re.compile(r'^whole\((.*)\)$')
 
     # Attempt to match and process 'case' and 'whole' directives
     while True:
@@ -226,59 +229,45 @@ def process_pattern(pattern):
 
         if case_match:
             is_case = True
-            final_pattern = case_match.group(1)  # Update final_pattern to the captured group
+            final_pattern = case_match.group(1)
         elif whole_match:
             is_whole = True
-            final_pattern = whole_match.group(1)  # Update final_pattern to the captured group
+            final_pattern = whole_match.group(1)
         else:
-            break  # Exit loop if no more matches
+            break
 
     # Apply whole word boundaries if 'whole' directive was detected
-    if is_whole:
-        final_pattern = r'\b' + final_pattern + r'\b'
+    final_pattern = r'\b' + final_pattern + r'\b' if is_whole else final_pattern
 
-    # Compile the final pattern with or without case sensitivity based on 'case' directive
-    if is_case:
-        processed_pattern = re.compile(final_pattern)
-    else:
-        processed_pattern = re.compile(final_pattern, re.IGNORECASE)
+    # Determine sensitivity
+    sensitivity = "case-sensitive" if is_case else "case-insensitive"
 
-    return processed_pattern
-# Combined Patterns (Both Basic and Advanced)
-def compile_all_patterns(basic_patterns, advanced_patterns, custom_patterns):
-    compiled_patterns = []
+    # Return a pattern object instead of compiling the regex
+    pattern_object = {
+        'pattern': final_pattern,
+        'sensitivity': sensitivity,
+        'whole': is_whole
+    }
 
-    # Compile basic patterns, with special handling for case-sensitive patterns
-    for pattern in basic_patterns:
-        compiled_patterns.append(process_pattern(pattern))
-
-    # Compile advanced patterns, assuming they already handle case sensitivity as needed
-    for pattern in advanced_patterns:
-        if isinstance(pattern, str):
-            compiled_patterns.append(re.compile(pattern, re.IGNORECASE))
-        else:  # Assuming advanced patterns are already compiled regex objects
-            compiled_patterns.append(pattern)
-    
-    # Compile custom patterns, assuming they're input as raw strings by the user
-    for pattern in custom_patterns:
-        if isinstance(pattern, str):
-            compiled_patterns.append(re.compile(pattern, re.IGNORECASE))
-        else:  # Assuming custom patterns are already compiled regex objects
-            compiled_patterns.append(pattern)
-
-    return compiled_patterns
+    return pattern_object
 
 
-# This function processes a single file against compiled patterns.
-def search_file(file_path, compiled_patterns):
+
+
+def search_file(file_path, pattern_objects):
     matches = []
     try:
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
-            for pattern in compiled_patterns:
+            for obj in pattern_objects:
+                # Compile the regex pattern on-the-fly based on the object
+                regex_flag = 0 if obj['sensitivity'] == 'case-sensitive' else re.IGNORECASE
+                pattern = re.compile(obj['pattern'], regex_flag)
+
                 for i, line in enumerate(lines, 1):
                     if pattern.search(line):
-                        matches.append((file_path, pattern.pattern, line.strip(), i))
+                        # Use the original pattern string for logging
+                        matches.append((file_path, obj['pattern'], line.strip(), i))
     except UnicodeDecodeError:
         print(f"Skipping file due to encoding issues: {file_path}")
     return matches
@@ -381,13 +370,19 @@ def get_user_confirmation(prompt):
 def generate_filename_prefix(specific_dirs, basic_patterns, max_length=60):
     """Generate a concise filename prefix within the max_length limit."""
     dir_names = "_".join([os.path.basename(dir_path) for dir_path in specific_dirs])
-    patterns_str = "_".join(basic_patterns).replace('*', 'all')
     
+    # Handle both strings (or compiled regexes) and dictionaries in basic_patterns
+    patterns_str = "_".join([
+        obj['pattern'] if isinstance(obj, dict) else str(obj)
+        for obj in basic_patterns
+    ]).replace('*', 'all').replace('\\b', '')
+
     # Construct the base filename and ensure it does not exceed max_length
     base_filename = f"{dir_names}_{patterns_str}_matches"
     if len(base_filename) > max_length:
-        return base_filename[:max_length-6] + "...-"
+        return base_filename[:max_length-6] + "..."
     return base_filename
+
 
 def save_matches(df, output_type, specific_dirs, basic_patterns):
     """Save the DataFrame of matches to a file in the specified format."""
@@ -415,23 +410,39 @@ def save_matches(df, output_type, specific_dirs, basic_patterns):
 
 
 def test_current_patterns_against_test_strings():
-    compiled_patterns = compile_all_patterns(basic_patterns, advanced_patterns, custom_patterns)
-    
+    print("Select the group of patterns to test:")
+    print("1) Test basic patterns")
+    print("2) Test advanced patterns")
+    print("3) Test custom patterns")
+    print("4) Test all patterns")
+    pattern_choice = input("Enter your choice (1/2/3/4): ").strip()
+
+    # Filter the compiled_patterns list based on user selection
+    if pattern_choice == '1':
+        pattern_objects = basic_patterns
+    elif pattern_choice == '2':
+        pattern_objects = advanced_patterns
+    elif pattern_choice == '3':
+        pattern_objects = custom_patterns
+    elif pattern_choice == '4':
+        pattern_objects = basic_patterns + advanced_patterns + custom_patterns
+    else:
+        print("Invalid choice. Testing all patterns by default.")
+        pattern_objects = basic_patterns + advanced_patterns + custom_patterns
+
+    # Display the patterns selected for testing
+    print("\nPatterns selected for testing:")
+    for obj in pattern_objects:
+        print(f" - Pattern: {obj['pattern']}, Sensitivity: {obj['sensitivity']}, Whole word: {obj['whole']}")
+
     # Predefined default test strings
     default_test_strings = [
         'This is a test for caffeine.',
-        'I am allergic to Ragweed.',
-        'Coconut oil is good for health.',
-        'Fish and oats are included.',
-        'Shrimp and oysters are seafood.',
-        'ALCoHOl consumption is restricted.',
-        'papaya is a tropical fruit. 1',
-        'Test1 and TEST1 ! = 10 ) 343 fksjf !*(&). bbtest1bb test2  sffdtest3./'
+        # Add the rest of your test strings here...
     ]
     default_test_strings_display = "\n".join(default_test_strings)
 
-    # Allow the user to choose between using a custom test string or default test strings
-    user_choice = input(f"\nDo you want to input a custom test string? If no, the following default test strings will be used:\n\n{default_test_strings_display}\n\n(yes/no): ").strip().lower()
+    user_choice = input(f"\nDo you want to input a custom test string? If no, the following default test strings will be used against your patterns:\n\n{default_test_strings_display}\n\n(yes/no): ").strip().lower()
 
     test_strings = []
     if user_choice == 'yes':
@@ -440,16 +451,17 @@ def test_current_patterns_against_test_strings():
     else:
         test_strings = default_test_strings
 
-    # Check each test string against all compiled patterns
+    # Compile the patterns on-the-fly and test each string against them
     for test_string in test_strings:
         print(f"\nTesting: \"{test_string}\"")
-        for pattern in compiled_patterns:
+        for obj in pattern_objects:
+            regex_flag = 0 if obj['sensitivity'] == 'case-sensitive' else re.IGNORECASE
+            pattern = re.compile(obj['pattern'], regex_flag)
             match = pattern.search(test_string)
             if match:
-                print(f"Match found: \"{match.group()}\" with pattern: {pattern.pattern}")
+                print(f"Match found: \"{match.group()}\" with pattern: {obj['pattern']} (Whole word: {obj['whole']}) and Sensitivity: {obj['sensitivity']}")
             else:
-                print(f"No match for pattern: {pattern.pattern}")
-
+                print(f"No match for pattern: {obj['pattern']} (Whole word: {obj['whole']}) and Sensitivity: {obj['sensitivity']}")
 
 def add_basic_patterns():
     global basic_patterns
@@ -461,23 +473,33 @@ def add_basic_patterns():
             basic_patterns = []
         else:
             patterns_input = input("Enter basic patterns separated by ',' (e.g., 'pattern1,pattern2') \nYou may also wrap word in 'whole()' or 'case()' directives, (learn more in pattern management readme), (e.g., 'whole(pattern1),case(PaTtErn2), whole(case(pATTERn3))'):\n")
-            basic_patterns.extend([pattern.strip() for pattern in patterns_input.split(',') if pattern.strip()])
             
+            input_patterns = [pattern.strip() for pattern in patterns_input.split(',') if pattern.strip()]
+        
+        # Process and compile each pattern immediately
+            compiled_patterns = [process_pattern(pattern) for pattern in input_patterns]
+        
+        # Extend the basic_patterns list with the newly compiled patterns
+            basic_patterns.extend(compiled_patterns)
             print("Basic patterns added.")
             view_current_patterns()
             return
 
     else: 
         patterns_input = input("Enter basic patterns separated by ',' (e.g., 'pattern1,pattern2') \nYou may also wrap word in 'whole()' or 'case()' directives, (learn more in pattern management readme), (e.g., 'whole(pattern1),case(PaTtErn2), whole(case(pATTERn3))'):\n")
-        basic_patterns = [pattern.strip() for pattern in patterns_input.split(',') if pattern.strip()]
-        print("Basic patterns added.")
-       
+
+        input_patterns = [pattern.strip() for pattern in patterns_input.split(',') if pattern.strip()]
+
+        # Process and compile each pattern immediately
+        compiled_patterns = [process_pattern(pattern) for pattern in input_patterns]
+
+        # Extend the basic_patterns list with the newly compiled patterns
+        basic_patterns.extend(compiled_patterns)
+
+
         view_current_patterns()
 
-def add_patterns_from_csv():
-    global advanced_patterns
-    advanced_patterns.extend(open_csv())  # Assuming open_csv() returns a list of patterns
-    print("Patterns from CSV added.")
+
 def list_regex_examples():
     return [
         ("\\btest\\b", "Matches 'test' as a whole word.", "Example match: 'test'", "Example non-match: 'testing'"),
@@ -546,9 +568,28 @@ def add_custom_patterns():
 
 def view_current_patterns():
     print("Currently applied patterns:")
-    print("Basic patterns:", [pattern for pattern in basic_patterns])
-    print("Advanced patterns from CSV:", [pattern.pattern for pattern in advanced_patterns])
-    print("Custom patterns:", [pattern.pattern for pattern in custom_patterns])
+    def format_pattern_obj(obj):
+        return f"{{Pattern: '{obj['pattern']}', Sensitivity: '{obj['sensitivity']}', Whole word: {obj['whole']}}}"
+
+    # Display basic patterns by extracting the pattern string from the compiled regex objects
+    if basic_patterns:
+        processed_basic_patterns = [format_pattern_obj(obj) for obj in basic_patterns]
+        print("Basic patterns:", processed_basic_patterns)
+    else:
+        print("Basic patterns: []")
+
+    # Display advanced patterns in a similar manner, since they are also compiled regex objects
+    if advanced_patterns:
+        advanced_patterns_str = [format_pattern_obj(obj) for obj in advanced_patterns]
+        print("Advanced patterns from CSV: [", ", ".join(advanced_patterns_str), "]")
+    else:
+        print("Advanced patterns from CSV: []")
+    # If you have custom patterns, display them similarly
+    if custom_patterns:
+        processed_custom_patterns = [pattern.pattern for pattern in custom_patterns]
+        print("Custom patterns:", processed_custom_patterns)
+    else:
+        print("Custom patterns: []")
 
 
 def view_current_directories():
@@ -744,12 +785,17 @@ def select_file_types():
         file_extensions = [ext.strip() for ext in new_file_types.split(',') if ext.strip()]
     print("Updated file types to search:", file_extensions if file_extensions != ['*'] else "Any")
 
+
 def start_search():
     if not basic_patterns and not advanced_patterns and not custom_patterns:
         print("No search patterns specified. Please add patterns before starting the search.")
         return
 
-    compiled_patterns = compile_all_patterns(basic_patterns, advanced_patterns, custom_patterns)
+    # Merge all patterns into a single list of pattern objects
+    pattern_objects = basic_patterns + advanced_patterns + custom_patterns
+
+    # Extract the pattern strings for display
+    pattern_strings = [obj['pattern'] for obj in pattern_objects]
 
     # Check if file extensions have been specified, if not, ask for them
     if not file_extensions:
@@ -767,26 +813,27 @@ def start_search():
     print("- Excluded Directories:", exclude_dirs)
     print("- Ignored File Paths:", ignore_paths_keywords)
     print("- File Types:", file_extensions if file_extensions != ['*'] else "Any")
-    print("- Patterns:", [pattern.pattern for pattern in compiled_patterns])
+    print("- Patterns:", pattern_strings)  # Display the extracted pattern strings
     print("- Include Subdirectories:", "Yes" if include_subdirs else "No")
-    # Starting the search with the specified configurations
+
     print("\nStarting search...")
     # Placeholder for search logic; implement the search using the search_files function
 
-    # Iterate through each directory specified in specific_dirs
     all_matches = []
     for directory in specific_dirs:
-        matches = search_files(directory, compiled_patterns, file_extensions, include_subdirs, exclude_dirs, ignore_paths_keywords)
+        matches = search_files(directory, pattern_objects, file_extensions, include_subdirs, exclude_dirs, ignore_paths_keywords)  # Pass the original pattern objects here
         all_matches.extend(matches)
 
     # Handling the results
     if all_matches:
         print(f"Found {len(all_matches)} matches.")
+        # Assuming df_matches is correctly defined elsewhere in your search_files function or similar
         df_matches = pd.DataFrame(all_matches)
         output_type = input("Enter the output file type (csv/xlsx/html): ").strip().lower()
-        save_matches(df_matches, output_type, specific_dirs, basic_patterns)
+        save_matches(df_matches, output_type, specific_dirs, pattern_strings)  # Adjust as necessary for saving logic
     else:
         print("No matches found.")
+
 
     # Optionally, you can save the results to a file or further process them
 
