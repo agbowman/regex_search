@@ -36,17 +36,28 @@ def select_csv_file():
         return None
 
 
-def open_text_file(file_path):
+def resource_path(relative_path):
+    """ Get the absolute path to the resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+def open_text_file(file_name):
+    file_path = resource_path(file_name)
     try:
         if sys.platform.startswith('win'):
             # Windows
             os.startfile(file_path)
         elif sys.platform.startswith('darwin'):
             # macOS
-            subprocess.run(['open', file_path])
+            subprocess.run(['open', file_path], check=True)
         elif sys.platform.startswith('linux') or sys.platform.startswith('linux2'):
             # Linux
-            subprocess.run(['xdg-open', file_path])
+            subprocess.run(['xdg-open', file_path], check=True)
         else:
             print(f"Unsupported OS: {sys.platform}")
     except Exception as e:
@@ -422,30 +433,61 @@ def generate_filename_prefix(specific_dirs, basic_patterns, max_length=60):
         return base_filename[:max_length-3] + "..."
     return base_filename
 
+
 def save_matches(df, output_type, specific_dirs, basic_patterns):
     """Save the DataFrame of matches to a file in the specified format."""
     
+    if df.empty:
+        print("No matches found.")
+        return
+
     # Construct the filename prefix
     filename_prefix = generate_filename_prefix(specific_dirs, basic_patterns)
-    
-    if not df.empty:
-        filename = f"{filename_prefix}.{output_type}"
-        
-        # Determine the output format and save accordingly
-        if output_type == 'csv':
-            df.to_csv(filename, index=False)
-        elif output_type == 'xlsx':
-            df.to_excel(filename, index=False)
-        elif output_type == 'html':
-            df.to_html(filename, index=False)
-        else:
-            print(f"Unsupported file type: {output_type}")
-            return
-        
-        print(f"Matches saved to {filename}")
-    else:
-        print("No matches found.")
 
+    # Set up the file dialog options
+    file_types = {
+        'csv': [('CSV files', '*.csv')],
+        'xlsx': [('Excel files', '*.xlsx')],
+        'html': [('HTML files', '*.html')]
+    }
+    file_extension = file_types.get(output_type, [('All Files', '*.*')])
+    
+    # Prompt the user for a location to save the file
+  
+    root.attributes('-topmost', True)  # Bring the dialog on top
+    save_path = filedialog.asksaveasfilename(
+        defaultextension=f".{output_type}",
+        filetypes=file_extension,
+        title="Save the matches to a file",
+        initialfile=filename_prefix
+    )
+    root.attributes('-topmost', False)  # Remove the always on top attribute
+
+    if not save_path:  # If the user cancels the save dialog
+        print("Save operation cancelled.")
+        return
+
+    # Save the DataFrame to the specified file type
+    if output_type == 'csv':
+        df.to_csv(save_path, index=False)
+    elif output_type == 'xlsx':
+        df.to_excel(save_path, index=False)
+    elif output_type == 'html':
+        df.to_html(save_path, index=False)
+
+    print(f"Matches saved to {save_path}")
+
+    # Open the saved file with the default application
+    if os.path.exists(save_path):
+        if sys.platform.startswith('win'):
+            os.startfile(save_path)
+        elif sys.platform.startswith('darwin'):
+            subprocess.run(['open', save_path])
+        elif sys.platform.startswith('linux'):
+            subprocess.run(['xdg-open', save_path])
+        else:
+            print("The file has been saved, but automatic opening is not supported on this OS.")
+            print(f"Please open the following file manually: {save_path}")
 
 def test_current_patterns_against_test_strings():
     print("Select the group of patterns to test:")
@@ -1067,8 +1109,11 @@ def main_menu():
             print("Invalid choice. Please enter a number from the menu.")
 
 
+
 if __name__ == "__main__":
-    main_menu()
-
-
-
+    try:
+        main_menu()
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        sys.stdout.flush()
+        input("Press Enter to exit...")  # So the window doesn't close immediately
