@@ -16,21 +16,26 @@ custom_patterns = []
 ignore_paths_keywords = []
 exclude_dirs = []
 file_extensions = []
+root = tk.Tk()
+root.withdraw()
 
 
 def select_csv_file():
-    root = tk.Tk()
-    root.withdraw()  # Hide the main Tkinter window
-    
-    # Temporarily make the window stay on top
-    root.attributes('-topmost', True)
-    
-    file_path = filedialog.askopenfilename(title="Select a CSV file", filetypes=[("CSV files", "*.csv")])
-    
-    # Set it back to not always on top after file dialog closes
-    root.attributes('-topmost', False)
-    
-    return file_path
+    try:
+        # Use the global root window for the file dialog
+        root.attributes('-topmost', True)
+        file_path = filedialog.askopenfilename(parent=root, title="Select a CSV file", filetypes=[("CSV files", "*.csv")])
+        root.attributes('-topmost', False)
+        
+        if not file_path:
+            print("File selection was canceled. Returning to the previous menu.")
+            return None
+        return file_path
+    except Exception as e:
+        print(f"An error occurred while selecting a file: {e}")
+        return None
+
+
 def open_text_file(file_path):
     try:
         if sys.platform.startswith('win'):
@@ -46,19 +51,21 @@ def open_text_file(file_path):
             print(f"Unsupported OS: {sys.platform}")
     except Exception as e:
         print(f"Failed to open file: {e}")
+
 def select_text_file():
-    root = tk.Tk()
-    root.withdraw()  # Hide the main Tkinter window
+    try:
+        # Use the global root window for the file dialog
+        root.attributes('-topmost', True)
+        file_path = filedialog.askopenfilename(parent=root, title="Select a text file", filetypes=[("Text files", "*.txt")])
+        root.attributes('-topmost', False)
 
-    # Temporarily make the window stay on top
-    root.attributes('-topmost', True)
-
-    file_path = filedialog.askopenfilename(title="Select a text file", filetypes=[("Text files", "*.txt")])
-
-    # Set it back to not always on top after file dialog closes
-    root.attributes('-topmost', False)
-
-    return file_path
+        if not file_path:
+            print("File selection was canceled. Returning to the previous menu.")
+            return None
+        return file_path
+    except Exception as e:
+        print(f"An error occurred while selecting a file: {e}")
+        return None
 
 def get_row_indices_from_input(user_input, max_rows):
     """
@@ -286,23 +293,19 @@ def search_file(file_path, pattern_objects):
     matches = []
     try:
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-            lines = f.readlines()
-            for obj in pattern_objects:
-                # Check if it's a custom pattern
-                if obj.get('isCustomPattern'):
-                    # Compile without additional flags
-                    pattern = re.compile(obj['pattern'])
-                else:
-                    # Compile with flags based on object properties
-                    regex_flag = 0 if obj.get('sensitivity', '') == 'case-sensitive' else re.IGNORECASE
-                    pattern = re.compile(obj['pattern'], regex_flag)
-
-                for i, line in enumerate(lines, 1):
-                    if pattern.search(line):
+            for i, line in enumerate(f, 1):  # Iterate through each line
+                for obj in pattern_objects:  # For each line, check against all patterns
+                    if obj.get('isCustomPattern'):
+                        pattern = re.compile(obj['pattern'])
+                    else:
+                        regex_flag = 0 if obj.get('sensitivity', '') == 'case-sensitive' else re.IGNORECASE
+                        pattern = re.compile(obj['pattern'], regex_flag)
+                    if pattern.search(line):  # If a match is found, append it to the matches list
                         matches.append((file_path, obj['pattern'], line.strip(), i))
     except UnicodeDecodeError:
         print(f"Skipping file due to encoding issues: {file_path}")
     return matches
+
 
 
 def search_files(directory, patterns, file_extensions, include_subdirs=True, exclude_dirs=None, ignore_paths_keywords=None):
