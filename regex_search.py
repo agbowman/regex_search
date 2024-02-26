@@ -2,6 +2,8 @@ import os
 import re
 import pandas as pd
 import concurrent.futures
+import subprocess
+import sys
 
 
 import tkinter as tk
@@ -9,7 +11,7 @@ from tkinter import filedialog
 
 specific_dirs = [r"N:\cclprod"]
 basic_patterns = []
-advanced_patterns = []
+csv_patterns = []
 custom_patterns = []
 ignore_paths_keywords = []
 exclude_dirs = []
@@ -29,6 +31,21 @@ def select_csv_file():
     root.attributes('-topmost', False)
     
     return file_path
+def open_text_file(file_path):
+    try:
+        if sys.platform.startswith('win'):
+            # Windows
+            os.startfile(file_path)
+        elif sys.platform.startswith('darwin'):
+            # macOS
+            subprocess.run(['open', file_path])
+        elif sys.platform.startswith('linux') or sys.platform.startswith('linux2'):
+            # Linux
+            subprocess.run(['xdg-open', file_path])
+        else:
+            print(f"Unsupported OS: {sys.platform}")
+    except Exception as e:
+        print(f"Failed to open file: {e}")
 def select_text_file():
     root = tk.Tk()
     root.withdraw()  # Hide the main Tkinter window
@@ -114,7 +131,6 @@ def make_unique_selected_data_to_regex(unique_selected_data):
     
     return pattern_objects
 
-
 def select_and_display_columns(csv_filepath):
     df = pd.read_csv(csv_filepath)
     
@@ -132,7 +148,7 @@ def select_and_display_columns(csv_filepath):
         
         selected_headers = [header.strip() for header in selected_headers_input.split(',')]
         selected_headers = [lower_to_original.get(header, '') for header in selected_headers]
-        selected_headers = [header for header in selected_headers if header]  # Filter out invalid selections
+        selected_headers = [header for header in selected_headers if header]
         
         if not selected_headers:
             print("None of the entered column headers were found. Please check for typos and try again.")
@@ -141,32 +157,37 @@ def select_and_display_columns(csv_filepath):
         print(f"Selecting data from {', '.join(selected_headers)}")
         confirmation = input("Proceed with these columns? (yes/no/back): ").lower()
         if confirmation == 'back':
-            continue  # Allows the user to re-select columns
+            continue
         elif confirmation != 'yes':
-            return 'back'  # Exits the function entirely
-
-        strip_trailing_zero_answered = False
-        while not strip_trailing_zero_answered:
-            strip_trailing_zero = input("Do you want to strip trailing .0 from float values? (yes/no/back): ").lower()
-            if strip_trailing_zero == 'back':
-                break  # Exits the strip_trailing_zero loop to allow re-selection of columns
-            elif strip_trailing_zero in ['yes', 'no']:
-                strip_trailing_zero_answered = True  # Proceed to the next step
-            else:
-                print("Please enter 'yes', 'no', or 'back'.")
-
-        if not strip_trailing_zero_answered:
-            continue  # If 'back' was chosen, restart the loop from column selection
+            return 'back'
 
         unique_selected_data = {}
         for header in selected_headers:
             print(f"\nData for column '{header}':")
             for idx, value in enumerate(df[header].unique(), 1):
                 print(f"{idx}. {value}")
+        for header in selected_headers:
+            # print(f"\nData for column '{header}':")
+            contains_trailing_zeros = False
+            for value in df[header].unique():
+                if isinstance(value, float) and value.is_integer():
+                    contains_trailing_zeros = True
+                    break
+            
+            strip_trailing_zero = 'no'
+            if contains_trailing_zeros:
+                strip_trailing_zero = input(f"Column '{header}' contains float values with trailing zeros. Do you want to strip trailing .0 from float values in this column? (yes/no/back): \nThis is best for searching ids in the code base with trailing 0's. code base often references ids without trailing .0's ").lower()
+                if strip_trailing_zero == 'back':
+                    return 'back'
+                elif strip_trailing_zero not in ['yes', 'no']:
+                    print("Invalid input. Please enter 'yes', 'no', or 'back'.")
+                    continue
+            # print every 
+
 
             row_selection = input(f"Which rows would you like to use from {header}? (Enter like: 1-5,8-10,20 or * for all rows or type 'back' to return): ")
             if row_selection == 'back':
-                return 'back'  # Allow the user to go back from row selection
+                return 'back'
 
             selected_rows = get_row_indices_from_input(row_selection, len(df))
             selected_data = df.iloc[selected_rows][header].dropna().unique().tolist()
@@ -176,15 +197,14 @@ def select_and_display_columns(csv_filepath):
 
         print("\nHere are the unique rows selected for each column:")
         for header, data in unique_selected_data.items():
-            print(f"{header}: {data}")
+            data_str = ', '.join(str(v) for v in data)
+            print(f"{header}: {data_str}")
 
         return unique_selected_data
 
-
-
 def add_patterns_from_csv():
-    global advanced_patterns
-    advanced_patterns.extend(open_csv())  # Assuming open_csv() returns a list of patterns
+    global csv_patterns
+    csv_patterns.extend(open_csv())  # Assuming open_csv() returns a list of patterns
     print("Patterns from CSV added.")
 
 
@@ -427,7 +447,7 @@ def save_matches(df, output_type, specific_dirs, basic_patterns):
 def test_current_patterns_against_test_strings():
     print("Select the group of patterns to test:")
     print("1) Test basic patterns")
-    print("2) Test advanced patterns")
+    print("2) Test csv patterns")
     print("3) Test custom patterns")
     print("4) Test all patterns")
     print("5) Back")
@@ -436,16 +456,16 @@ def test_current_patterns_against_test_strings():
     if pattern_choice == '1':
         pattern_objects = basic_patterns
     elif pattern_choice == '2':
-        pattern_objects = advanced_patterns
+        pattern_objects = csv_patterns
     elif pattern_choice == '3':
         pattern_objects = custom_patterns
     elif pattern_choice == '4':
-        pattern_objects = basic_patterns + advanced_patterns + custom_patterns
+        pattern_objects = basic_patterns + csv_patterns + custom_patterns
     elif pattern_choice == '5':
         return
     else:
         print("Invalid choice. Testing all patterns by default.")
-        pattern_objects = basic_patterns + advanced_patterns + custom_patterns
+        pattern_objects = basic_patterns + csv_patterns + custom_patterns
 
     print("\nPatterns selected for testing:")
     for obj in pattern_objects:
@@ -490,6 +510,15 @@ def test_current_patterns_against_test_strings():
                 if not obj.get('isCustomPattern'):
                     no_match_info += f" (Whole word: {obj.get('whole', 'N/A')}) and Sensitivity: {obj.get('sensitivity', 'N/A')}"
                 print(no_match_info)
+def example_basic_patterns():
+    
+            return[
+        ("searchword", "Matches 'searchword' as part of a word with case insensitivity.", "Example match: 'SearchWord' or 'searchwords'", "Example non-match: 'wordsearch'"),
+        ("whole(searchword)", "Matches 'searchword' as a whole word.", "Example match: 'searchword'", "Example non-match: 'searchwords'"),
+        ("case(SearchWord)", "Matches 'searchword' with case sensitivity.", "Example match: 'SearchWord'", "Example non-match: 'searchword'"),
+        ("whole(case(SearchWord))", "Matches 'searchword' as a whole word with case sensitivity.", "Example match: 'SearchWord'", "Example non-match: 'SearchWords'"),
+            ]
+       
 
 def add_basic_patterns():
     global basic_patterns
@@ -500,7 +529,17 @@ def add_basic_patterns():
         if overwrite == 'yes':
             basic_patterns = []
         else:
-            patterns_input = input("Enter basic patterns separated by ',' (e.g., 'pattern1,pattern2') \nYou may also wrap word in 'whole()' or 'case()' directives, (learn more in pattern management readme), (e.g., 'whole(pattern1),case(PaTtErn2), whole(case(pATTERn3))'):\n")
+            #print example basic patterns
+            print("\nSome example basic patterns:\n")
+            for i, (pattern, description, match_example, non_match_example) in enumerate(example_basic_patterns(), 1):
+                print(f"{i})   {pattern}\n")
+                print(f"   - {description}")
+                
+                print(f"   - Example match: {match_example}")
+                print(f"   - Example non-match: {non_match_example}\n")
+            print()
+
+            patterns_input = input("\n\nEnter basic patterns separated by ',' (e.g., 'pattern1,pattern2') \nYou may also wrap word in 'whole()' or 'case()' directives (e.g., 'whole(pattern1),case(PaTtErn2), whole(case(pATTERn3))'):\n")
             
             input_patterns = [pattern.strip() for pattern in patterns_input.split(',') if pattern.strip()]
         
@@ -514,7 +553,16 @@ def add_basic_patterns():
             return
 
     else: 
-        patterns_input = input("Enter basic patterns separated by ',' (e.g., 'pattern1,pattern2') \nYou may also wrap word in 'whole()' or 'case()' directives, (learn more in pattern management readme), (e.g., 'whole(pattern1),case(PaTtErn2), whole(case(pATTERn3))'):\n")
+                #print example basic patterns
+        print("\nSome example basic patterns:\n")
+        for i, (pattern, description, match_example, non_match_example) in enumerate(example_basic_patterns(), 1):
+            print(f"{i})   {pattern}\n")
+            print(f"   - {description}")
+            
+            print(f"   - Example match: {match_example}")
+            print(f"   - Example non-match: {non_match_example}\n")
+        print()
+        patterns_input = input("\n\nEnter basic patterns separated by ',' (e.g., 'pattern1,pattern2') \nYou may also wrap word in 'whole()' or 'case()' directives (e.g., 'whole(pattern1),case(PaTtErn2), whole(case(pATTERn3))'):\n")
 
         input_patterns = [pattern.strip() for pattern in patterns_input.split(',') if pattern.strip()]
 
@@ -539,17 +587,33 @@ def list_regex_examples():
         ("\\b(?:test|text)\\b", "Matches either 'test' or 'text' as whole words.", "Example match: 'test'", "Example non-match: 'testing'"),
         ("\\d+(?:\\.\\d+)?", "Matches integers or decimals.", "Example match: '1.23'", "Example non-match: 'abc'"),
         ("(?<=@)\\w+", "Matches a word following '@' character without including '@'.", "Example match: 'user' in '@user'", "Example non-match: 'user' in 'user@'"),
+        ("^hello", "Matches a specific word at the beginning of a line.", "Example match: 'hello world'", "Example non-match: 'say hello'"),
+        ("world$", "Matches a specific word at the end of a line.", "Example match: 'hello world'", "Example non-match: 'world peace'"),
+        ("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "Matches an email address (simplified pattern).", "Example match: 'email@example.com'", "Example non-match: 'email@com'"),
+        ("\\d{4}-\\d{2}-\\d{2}", "Matches a date in yyyy-mm-dd format.", "Example match: '2023-01-01'", "Example non-match: '01-01-2023'"),
+        ("(\\(\\d{3}\\)|\\d{3})[-. ]?\\d{3}[-. ]?\\d{4}", "Matches a phone number in various formats.", "Example match: '123-456-7890'", "Example non-match: '1234567890'"),
+        ("https?:\\/\\/(www\\.)?[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}(/.*)?", "Matches a URL.", "Example match: 'http://www.example.com'", "Example non-match: 'www.example'"),
+        
+        ("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}", "Matches an IP address (simplified pattern).", "Example match: '192.168.1.1'", "Example non-match: '192.168.1'"),
+        ("([01]?[0-9]|2[0-3]):[0-5][0-9]", "Matches a time in 24-hour format.", "Example match: '23:59'", "Example non-match: '24:00'"),
+        ("\\d{5}(-\\d{4})?", "Matches a ZIP code (US).", "Example match: '12345-6789'", "Example non-match: '123456789'"),
+        ("-?\\d+(\\.\\d+)?", "Matches a negative or positive integer or decimal.", "Example match: '-123.45'", "Example non-match: 'abc'"),
+
+        ("^\\S+$", "Matches any string without spaces (useful for usernames).", "Example match: 'username'", "Example non-match: 'user name'"),
     ]
+
 def add_custom_patterns():
     global custom_patterns
     while True:
         print("\nWould you like to:")
         print("1) Enter your custom regex pattern manually.")
         print("2) Read in regex from a text file.")
-        print("3) Back")
+        print("3) View regex examples.")
+        print("4) View regex example text file.")
+        print("5) Back")
         choice = input("Please enter 1 or 2 to continue or 3 to go back: ").strip()
         
-
+        pattern_added = False
         if choice == '1':
             display_examples = input("Do you want to see some regex examples? (yes/no): ").strip().lower()
             if display_examples == 'yes':
@@ -560,38 +624,80 @@ def add_custom_patterns():
                     print(f"   - Example match: {match_example}")
                     print(f"   - Example non-match: {non_match_example}")
                 print()
-            custom_pattern = input("Enter your custom regex pattern: ").strip()
+            custom_pattern = input("Enter your custom regex pattern or type 'back' to go back: ").strip()
             try:
                 # Directly store the pattern string with an isCustomPattern flag
+                if custom_pattern == 'back':
+                    continue
+
                 custom_patterns.append({'pattern': custom_pattern, 'isCustomPattern': True})
+                pattern_added = True
                 print("Custom pattern added.")
             except re.error as e:
                 print(f"Regex error: {e}. Please enter a valid regex pattern.")
         elif choice == '2':
-            file_path = select_text_file()
+            file_path = select_text_file()  # Assuming this function prompts the user to choose a file and returns the file path
             if file_path:
+                invalid_patterns = []  # List to store invalid patterns
                 with open(file_path, "r") as file:
                     for line in file:
+                        # Strip whitespace and ignore empty lines or lines starting with '#'
                         custom_pattern = line.strip()
-                        if custom_pattern:
-                            custom_patterns.append({'pattern': custom_pattern, 'isCustomPattern': True})
-                print(f"Custom patterns added from {file_path}.")
+                        if custom_pattern and not custom_pattern.startswith('#'):
+                            try:
+                                # Attempt to compile the pattern to validate its correctness
+                                re.compile(custom_pattern)
+                                # If compilation succeeds, add it to the custom patterns
+                                custom_patterns.append({'pattern': custom_pattern, 'isCustomPattern': True})
+                                pattern_added = True
+                            except re.error:
+                                # If an error occurs during compilation, add to invalid patterns list
+                                invalid_patterns.append(custom_pattern)
+                
+                if invalid_patterns:
+                    # If there are any invalid patterns, notify the user
+                    print("Some patterns were invalid and not added:")
+                    for pattern in invalid_patterns:
+                        print(f"Invalid pattern: {pattern}")
+                    # Only print "Custom patterns added" if at least one valid pattern was added
+                    if pattern_added:
+                        print("Valid custom patterns added.")
+                elif pattern_added:
+                    # If no invalid patterns and at least one pattern was added
+                    print("Custom patterns added.")
+                else:
+                    # If no patterns were added, likely due to all being invalid or file being empty
+                    print("No valid patterns were added. Ensure the file contains valid regex patterns and does not only consist of comments or empty lines.")
             else:
                 print("No file was selected.")
+
         elif choice == '3':
+            print("\nSome regex examples:")
+            for i, (pattern, description, match_example, non_match_example) in enumerate(list_regex_examples(), 1):
+                print(f"{i}) {description}")
+                print(f"   - {pattern}")
+                print(f"   - Example match: {match_example}")
+                print(f"   - Example non-match: {non_match_example}")
+            print()
+        elif choice == '4':
+            #open the file
+            open_text_file("regex_example_file.txt")
+
+        elif choice == '5':
             break
 
         else:
             print("Invalid choice. Please enter 1 or 2.")
             continue
-        test_pattern = input("Do you want to test the custom pattern against example strings? (yes/no): ").strip().lower()
-        while test_pattern == 'yes':
-            test_current_patterns_against_test_strings()
-            test_pattern = input("Do you want to test the custom pattern again? (yes/no): ").strip().lower()
+        if pattern_added:
+            test_pattern = input("Do you want to test the custom pattern against example strings? (yes/no): ").strip().lower()
+            while test_pattern == 'yes':
+                test_current_patterns_against_test_strings()
+                test_pattern = input("Do you want to test the custom pattern again? (yes/no): ").strip().lower()
 
-        add_more = input("\nDo you want to add more custom patterns? (yes to add more, anything else to finish): ").strip().lower()
-        if add_more != 'yes':
-            break
+            add_more = input("\nDo you want to add more custom patterns? (yes to add more, anything else to finish): ").strip().lower()
+            if add_more != 'yes':
+                break
 
 def view_current_patterns():
     print("Currently applied patterns:")
@@ -602,10 +708,10 @@ def view_current_patterns():
         for obj in basic_patterns:
             print(f" - Pattern: {obj['pattern']}, Sensitivity: {obj.get('sensitivity', 'N/A')}, Whole word: {obj.get('whole', 'N/A')}")
 
-    # Display advanced patterns from CSV
-    if advanced_patterns:
-        print("Advanced patterns from CSV:")
-        for obj in advanced_patterns:
+    # Display csv patterns from CSV
+    if csv_patterns:
+        print("csv patterns from CSV:")
+        for obj in csv_patterns:
             print(f" - Pattern: {obj['pattern']}, Sensitivity: {obj.get('sensitivity', 'N/A')}, Whole word: {obj.get('whole', 'N/A')}")
 
     # Display custom patterns, handling them differently
@@ -669,26 +775,26 @@ def select_search_directory():
             print("Invalid input. Please enter 'y' for yes or 'n' for no.")
 
 def clear_all_patterns():
-    global basic_patterns, advanced_patterns, custom_patterns
+    global basic_patterns, csv_patterns, custom_patterns
     print("Are you sure you want to clear all patterns? This action cannot be undone.")
     confirm_clear = input("Enter 'yes' to clear all patterns: ").strip().lower()
     if confirm_clear == 'yes':
         basic_patterns.clear()
-        advanced_patterns.clear()
+        csv_patterns.clear()
         custom_patterns.clear()
         print("All patterns cleared.")
     else:
         print("No patterns were cleared.")
 
 def clear_patterns():
-    global basic_patterns, advanced_patterns, custom_patterns
+    global basic_patterns, csv_patterns, custom_patterns
     while True:
         print("\nClear Patterns:")
         print("1) Clear all basic patterns")
-        print("2) Clear all advanced patterns")
+        print("2) Clear all csv patterns")
         print("3) Clear all custom patterns")
         print("4) Clear a specific basic pattern")
-        print("5) Clear a specific advanced pattern")
+        print("5) Clear a specific csv pattern")
         print("6) Clear a specific custom pattern")
         print("7) Back")
         choice = input("Enter your choice: ").strip()
@@ -697,13 +803,13 @@ def clear_patterns():
             if confirm_clear("basic"):
                 basic_patterns.clear()
         elif choice == "2":
-            if confirm_clear("advanced"):
-                advanced_patterns.clear()
+            if confirm_clear("csv"):
+                csv_patterns.clear()
         elif choice == "3":
             if confirm_clear("custom"):
                 custom_patterns.clear()
         elif choice in ["4", "5", "6"]:
-            pattern_list = basic_patterns if choice == "4" else advanced_patterns if choice == "5" else custom_patterns
+            pattern_list = basic_patterns if choice == "4" else csv_patterns if choice == "5" else custom_patterns
             clear_specific_pattern(pattern_list)
         elif choice == "7":
             break
@@ -755,9 +861,9 @@ def pattern_management():
     while True:
         print("\nPattern Management:")
         print("1) Add basic patterns")
-        print("2) Add patterns from CSV")
-        print("3) Test current patterns against test strings")
-        print("4) Add custom patterns")
+        print("2) Add patterns from CSV (ex: Using results from adhoc query csv to find results in code base)")
+        print("3) Add custom regex patterns")
+        print("4) Test current patterns against test strings")
         print("5) View current patterns")
         print("6) Clear patterns")
         print("7) Back")
@@ -768,9 +874,9 @@ def pattern_management():
         elif choice == "2":
             add_patterns_from_csv()
         elif choice == "3":
-            test_current_patterns_against_test_strings()
+            add_custom_patterns()   
         elif choice == "4":
-            add_custom_patterns()
+            test_current_patterns_against_test_strings()
         elif choice == "5":
             view_current_patterns()
         elif choice == "6":
@@ -779,7 +885,7 @@ def pattern_management():
             break
         else:
             print("Invalid choice. Please enter a number from the menu.")
-            
+
 def search_directory_configuration():
     global specific_dirs
     while True:
@@ -875,12 +981,12 @@ def select_file_types():
 
 
 def start_search():
-    if not basic_patterns and not advanced_patterns and not custom_patterns:
+    if not basic_patterns and not csv_patterns and not custom_patterns:
         print("No search patterns specified. Please add patterns before starting the search.")
         return
 
     # Merge all patterns into a single list of pattern objects
-    pattern_objects = basic_patterns + advanced_patterns + custom_patterns
+    pattern_objects = basic_patterns + csv_patterns + custom_patterns
 
     # Extract the pattern strings for display
     pattern_strings = [obj['pattern'] for obj in pattern_objects]
