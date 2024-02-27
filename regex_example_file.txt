@@ -1,0 +1,43 @@
+#Feel free to add comments to your file with pound sign (#) in the beginning of the line
+
+
+
+
+#this pattern will match any word that contains the word "test" in it (case insensitive), but will not match on something like "contest" or "testing"
+\btest\b
+
+#this pattern will match any word that contains only letters (case insensitive)
+[a-zA-Z]+
+
+# Matches a specific word at the beginning of a line
+^hello
+
+# Matches a specific word at the end of a line
+world$
+
+# Matches an email address (simplified pattern)
+[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}
+
+# Matches a date in yyyy-mm-dd format
+\d{4}-\d{2}-\d{2}
+
+# Matches a phone number in various formats (e.g., 123-456-7890, (123) 456-7890, 123 456 7890, 123.456.7890)
+(\(\d{3}\)|\d{3})[-. ]?\d{3}[-. ]?\d{4}
+
+# Matches a URL
+https?:\/\/(www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?
+
+# Matches an IP address (simplified pattern)
+\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}
+
+# Matches a time in 24-hour format
+([01]?[0-9]|2[0-3]):[0-5][0-9]
+
+# Matches a ZIP code (US)
+\d{5}(-\d{4})?
+
+# Matches a negative or positive integer or decimal
+-?\d+(\.\d+)?
+
+# Matches any string without spaces (useful for usernames)
+^\S+$
