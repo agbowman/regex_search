@@ -1,10 +1,11 @@
+print("Welcome to the code search tool!\nLoading...\n")
 import os
 import re
 import pandas as pd
 import concurrent.futures
 import subprocess
 import sys
-
+print("\n")
 
 import tkinter as tk
 from tkinter import filedialog
@@ -1111,9 +1112,5 @@ def main_menu():
 
 
 if __name__ == "__main__":
-    try:
-        main_menu()
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        sys.stdout.flush()
-        input("Press Enter to exit...")  # So the window doesn't close immediately
+    main_menu()
+    
