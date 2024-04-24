@@ -1106,11 +1106,13 @@ def clean_text(text):
     # Replace other potentially problematic characters as needed, for example:
     text = text.replace('\x00', '')  # Remove NULL characters
     return text
-def split_dat_file_to_blocks(input_file_path):
+
+def split_dat_file_to_blocks(input_file_path, skip_compiler_prefix=None, skip_source_prefix=None):
     """
     Reads a .dat file line by line and groups lines into blocks based on starting with
     'CREATE PROGRAM' or 'DROP PROGRAM' and ending with 'END GO'.
     Captures 'Compiled By' and 'Source' information for each block.
+    Optionally skips blocks compiled by compilers or sourced from sources starting with specified prefixes.
     Returns a list of tuples, each containing a block's name, its content, compiled by, and source.
     """
     blocks = []
@@ -1145,7 +1147,9 @@ def split_dat_file_to_blocks(input_file_path):
                 elif 'END GO' in line and in_block:
                     # End of the current block
                     current_block.append(line)  # Add the ending line to the current block
-                    blocks.append((block_name, '\n'.join(current_block), compiled_by, source))  # Save the block with compiled by and source
+                    if not ((skip_compiler_prefix and compiled_by.lower().startswith(skip_compiler_prefix)) or
+                            (skip_source_prefix and source.lower().startswith(skip_source_prefix))):
+                        blocks.append((block_name, '\n'.join(current_block), compiled_by, source))  # Save the block unless it's to be skipped
                     in_block = False  # Reset for the next block
                     compiled_by = ""  # Reset compiled by and source for the next block
                     source = ""
@@ -1157,6 +1161,8 @@ def split_dat_file_to_blocks(input_file_path):
         print(f"Error reading file {input_file_path}: {e}")
 
     return blocks
+
+
 
 def search_blocks_aggregated(named_blocks, pattern_objects, detailed_output=False):
     """
@@ -1223,13 +1229,23 @@ def search_blocks_aggregated(named_blocks, pattern_objects, detailed_output=Fals
 
 
 def process_and_search_dat_file(dat_file_path, pattern_objects):
+    skip_compiler_input = input("Enter the prefix of 'compiled by' names to skip (e.g., 'd' to skip files with 'compiled by' names starting with 'd', leave empty if none(press enter)): ").strip().lower()
+    skip_compiler_prefix = skip_compiler_input if skip_compiler_input else None
+
+    skip_source_input = input("Enter the prefix of source names to skip (e.g., 'd' to skip names starting with 'd', leave empty if none(press enter)): ").strip().lower()
+    skip_source_prefix = skip_source_input if skip_source_input else None 
+    if skip_compiler_prefix:
+        print(f"Ignoring files with compiled by names starting with '{skip_compiler_prefix}'.")
+    if skip_source_prefix:
+        print(f"Ignoring files with source names starting with '{skip_source_prefix}'.")
+   
     output_format = input("Choose output format: 1 for each file per row, 2 for each pattern per row: ").strip()
     detailed_output = output_format == "2"
     pattern_string = "\n".join(f"-{obj['pattern']}" for obj in pattern_objects)
     
     print(f"Patterns used for searching:\n{pattern_string}\n") 
     print(f"Reading and processing {dat_file_path} , this may take a minute...")
-    named_blocks = split_dat_file_to_blocks(dat_file_path)
+    named_blocks = split_dat_file_to_blocks(dat_file_path, skip_compiler_prefix, skip_source_prefix)
     if named_blocks:
         print(f"Searching through {len(named_blocks)} 'virtual files' for patterns...")
         # Let the user decide the output format

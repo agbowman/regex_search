@@ -1,36 +1,49 @@
 #Feel free to add comments to your file with pound sign (#) in the beginning of the line
 
 
-# what we are looking for: 
+# example of what we are looking for to get the code set value: 
 #	code_set = 1
 #	uar_get_code_by(...., 1,... )
-
+#   loadoutalias("69, 71, 34, 220, 19, 1, 354",mf_Variable)
+#   loadcodevalue(1,"SOMETEXT",0)
 
 # Just change the 1 to any other code set value. this matches on codeset 1 exactly. not 10 or 100 etc.
 # This accounts for any sort of white space in the uar function as well as being case insensitive.
 
-(?i)uar_get_code_by\([^,]+,\s*1\s*(?=,)[^)]*\)
+(?i)uar_get_code_by\([^,]+,\s*1\s*(?=,)[^)]*\)   <- matches on 1
 
 
 #same thing here. ensures code set is 1 not 10 or 100 etc. any amount of spacing between =
 
-(?i)code_set\s*=\s*1(?!\d)
+(?i)code_set\s*=\s*1(?!\d)    <- matches on 1
 
-
+#same thing here. ensures any amount of padding and matches exactly on number. 
+(?i)loadcodevalue\s*\(\s*1\s*,\s*"[^"]*"\s*,\s*\d+\s*\)            <- matches on 1
+(?i)LoadOutAlias\(\s*"(?:\d+\s*,\s*)*\b1\b(?:\s*,\s*\d+)*"\s*,\s*[^)]+\)  <- matches on 1
 
 # now we can do the same for code set 2,3, and 4. 
 
 
+#For Codeset 2:
 (?i)uar_get_code_by\([^,]+,\s*2\s*(?=,)[^)]*\)
 (?i)code_set\s*=\s*2(?!\d)
+(?i)loadcodevalue\s*\(\s*2\s*,\s*"[^"]*"\s*,\s*\d+\s*\)
+(?i)LoadOutAlias\(\s*"(?:\d+\s*,\s*)*\b2\b(?:\s*,\s*\d+)*"\s*,\s*[^)]+\)
 
-
+#For Codeset 3:
 (?i)uar_get_code_by\([^,]+,\s*3\s*(?=,)[^)]*\)
 (?i)code_set\s*=\s*3(?!\d)
+(?i)loadcodevalue\s*\(\s*3\s*,\s*"[^"]*"\s*,\s*\d+\s*\)
+(?i)LoadOutAlias\(\s*"(?:\d+\s*,\s*)*\b3\b(?:\s*,\s*\d+)*"\s*,\s*[^)]+\)
 
-
+#For Codeset 4:
 (?i)uar_get_code_by\([^,]+,\s*4\s*(?=,)[^)]*\)
 (?i)code_set\s*=\s*4(?!\d)
+(?i)loadcodevalue\s*\(\s*4\s*,\s*"[^"]*"\s*,\s*\d+\s*\)
+(?i)LoadOutAlias\(\s*"(?:\d+\s*,\s*)*\b4\b(?:\s*,\s*\d+)*"\s*,\s*[^)]+\)
+
+
+# More regex axamples:
 
 #this pattern will match any word that contains the word "test" in it (case insensitive), but will not match on something like "contest" or "testing"
 \btest\b
