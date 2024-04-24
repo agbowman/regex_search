@@ -1158,56 +1158,82 @@ def split_dat_file_to_blocks(input_file_path):
 
     return blocks
 
-
-
-def search_blocks_aggregated(named_blocks, pattern_objects):
+def search_blocks_aggregated(named_blocks, pattern_objects, detailed_output=False):
     """
-    Searches through named blocks for specified patterns and compiles aggregated matches.
-    Each named block is treated as a "virtual file", with a single entry per block that includes
-    arrays of matched lines, line numbers, source, and compiled by information.
+    Searches through named blocks for specified patterns and compiles matches.
+    If detailed_output is True, each pattern gets its own row in the output.
+    Ensures that only virtual files with matches are included in the final output.
+    Provides progress updates every 100 files.
     """
-    aggregated_matches = {}
+    total_files = len(named_blocks)  # Total number of virtual files
+    aggregated_matches = []
+    file_count = 0  # Counter to keep track of how many files have been processed
 
     for program_name, block_content, compiled_by, source in named_blocks:
         lines = block_content.split('\n')
+        pattern_data = {}
+
         for line_index, line in enumerate(lines, start=1):
             for obj in pattern_objects:
                 pattern = re.compile(obj['pattern'], 0 if obj.get('sensitivity', '') == 'case-sensitive' else re.IGNORECASE)
                 if pattern.search(line):
-                    # If the program name isn't already a key in the dictionary, initialize it
-                    if program_name not in aggregated_matches:
-                        aggregated_matches[program_name] = {
-                            "Patterns": [],
+                    if obj['pattern'] not in pattern_data:
+                        pattern_data[obj['pattern']] = {
                             "Matched Lines": [],
-                            "Line Numbers": [],
-                            "Compiled By": compiled_by,  # Store the compiled by information
-                            "Source": source  # Store the source information
+                            "Line Numbers": []
                         }
+                    pattern_data[obj['pattern']]["Matched Lines"].append(line.strip())
+                    pattern_data[obj['pattern']]["Line Numbers"].append(line_index)
 
-                    if obj['pattern'] not in aggregated_matches[program_name]["Patterns"]:
-                        aggregated_matches[program_name]["Patterns"].append(obj['pattern'])
-                    aggregated_matches[program_name]["Matched Lines"].append(line.strip())
-                    aggregated_matches[program_name]["Line Numbers"].append(line_index)
+        file_count += 1  # Increment the processed file count
 
-    # Convert the aggregated_matches dict to a list of dicts format expected by the DataFrame constructor
-    matches_list = []
-    for program_name, data in aggregated_matches.items():
-        matches_list.append({
-            "File": f"{program_name}",
-            "Patterns": ", ".join(data["Patterns"]),
-            "Matched Lines": "; ".join(data["Matched Lines"]),
-            "Line Numbers": ", ".join(map(str, data["Line Numbers"])),
-            "Compiled By": data["Compiled By"],
-            "Source": data["Source"]
-        })
+        # Only add entries for virtual files with at least one pattern match
+        if pattern_data:
+            if detailed_output:
+                # Create a single entry per pattern matched in each virtual file
+                for pattern, data in pattern_data.items():
+                    aggregated_matches.append({
+                        "File": program_name,
+                        "Pattern": pattern,
+                        "Matched Lines": "; ".join(data["Matched Lines"]),
+                        "Line Numbers": ", ".join(map(str, data["Line Numbers"])),
+                        "Compiled By": compiled_by,
+                        "Source": source
+                    })
+            else:
+                # Aggregate all patterns in a single entry per file
+                all_patterns = ", ".join(pattern_data.keys())
+                all_matched_lines = "; ".join("; ".join(data["Matched Lines"]) for data in pattern_data.values())
+                all_line_numbers = ", ".join(", ".join(map(str, data["Line Numbers"])) for data in pattern_data.values())
+                aggregated_matches.append({
+                    "File": program_name,
+                    "Patterns": all_patterns,
+                    "Matched Lines": all_matched_lines,
+                    "Line Numbers": all_line_numbers,
+                    "Compiled By": compiled_by,
+                    "Source": source
+                })
 
-    return matches_list
+        # Provide progress update every 100 files
+        if file_count % 100 == 0:
+            print(f"Processed {file_count} out of {total_files} files...")
+
+    return aggregated_matches
+
+
 
 def process_and_search_dat_file(dat_file_path, pattern_objects):
+    output_format = input("Choose output format: 1 for each file per row, 2 for each pattern per row: ").strip()
+    detailed_output = output_format == "2"
+    pattern_string = "\n".join(f"-{obj['pattern']}" for obj in pattern_objects)
+    
+    print(f"Patterns used for searching:\n{pattern_string}\n") 
+    print(f"Reading and processing {dat_file_path} , this may take a minute...")
     named_blocks = split_dat_file_to_blocks(dat_file_path)
     if named_blocks:
         print(f"Searching through {len(named_blocks)} 'virtual files' for patterns...")
-        matches = search_blocks_aggregated(named_blocks, pattern_objects)
+        # Let the user decide the output format
+        matches = search_blocks_aggregated(named_blocks, pattern_objects, detailed_output)
         if matches:
             print(f"Found matches in {len(matches)} 'virtual files'.")
             for match in matches:
@@ -1221,6 +1247,7 @@ def process_and_search_dat_file(dat_file_path, pattern_objects):
             print("No matches found within the 'virtual files'.")
     else:
         print("No 'virtual files' to search.")
+
 
 def main_menu():
     while True:

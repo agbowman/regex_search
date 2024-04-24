@@ -1,5 +1,5 @@
 ('C:\\Users\\EN111251\\OneDrive - Baystate '
- 'Health\\Desktop\\regex_search_final\\build\\regex_search\\PYZ-00.pyz',
+ 'Health\\Desktop\\regex_search\\build\\regex_search\\PYZ-00.pyz',
  [('PIL',
    'C:\\Users\\EN111251\\AppData\\Roaming\\Python\\Python312\\site-packages\\PIL\\__init__.py',
    'PYMODULE'),
