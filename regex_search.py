@@ -850,29 +850,33 @@ def clear_all_patterns():
 def clear_patterns():
     global basic_patterns, csv_patterns, custom_patterns
     while True:
+        
         print("\nClear Patterns:")
-        print("1) Clear all basic patterns")
-        print("2) Clear all csv patterns")
-        print("3) Clear all custom patterns")
-        print("4) Clear a specific basic pattern")
-        print("5) Clear a specific csv pattern")
-        print("6) Clear a specific custom pattern")
-        print("7) Back")
+        print("1) Clear all patterns")
+        print("2) Clear all basic patterns")
+        print("3) Clear all csv patterns")
+        print("4) Clear all custom patterns")
+        print("5) Clear a specific basic pattern")
+        print("6) Clear a specific csv pattern")
+        print("7) Clear a specific custom pattern")
+      
+        print("8) Back")
         choice = input("Enter your choice: ").strip()
-
         if choice == "1":
+            clear_all_patterns()
+        elif choice == "2":
             if confirm_clear("basic"):
                 basic_patterns.clear()
-        elif choice == "2":
+        elif choice == "3":
             if confirm_clear("csv"):
                 csv_patterns.clear()
-        elif choice == "3":
+        elif choice == "4":
             if confirm_clear("custom"):
                 custom_patterns.clear()
-        elif choice in ["4", "5", "6"]:
+        elif choice in ["5", "6", "7"]:
             pattern_list = basic_patterns if choice == "4" else csv_patterns if choice == "5" else custom_patterns
             clear_specific_pattern(pattern_list)
-        elif choice == "7":
+        elif choice == "8":
             break
         else:
             print("Invalid choice. Please enter a number from the menu.")
@@ -953,9 +957,9 @@ def search_directory_configuration():
         print("\nSearch Directory Configuration:")
         print("1) Change search directories")
         print("2) Change file types to search")
-        print("4) View current search directories")
-        print("5) View file types to search")
-        print("6) Back")
+        print("3) View current search directories")
+        print("4) View file types to search")
+        print("5) Back")
         choice = input("Enter your choice: ")
         
         if choice == "1":
@@ -963,11 +967,11 @@ def search_directory_configuration():
         elif choice == "2":
             select_file_types()
 
-        elif choice == "4":
+        elif choice == "3":
             view_current_directories()
-        elif choice == "5":
+        elif choice == "4":
             view_file_types_to_search()
-        elif choice == "6":
+        elif choice == "5":
             break
         else:
             print("Invalid choice. Please enter a number from the menu.")
@@ -1120,6 +1124,9 @@ def split_dat_file_to_blocks(input_file_path, skip_compiler_prefix=None, skip_so
     block_name = ""
     compiled_by = ""
     source = ""
+    da2 = "" 
+    ops = "" 
+    last_run_by = ""
     in_block = False
 
     try:
@@ -1138,6 +1145,16 @@ def split_dat_file_to_blocks(input_file_path, skip_compiler_prefix=None, skip_so
                         source = source_parts[1].rstrip(' >>')
                     else:
                         source = "Unknown"
+                if '<<DA2:' in line:
+                    da2_parts = line.strip().split('<<DA2: ')
+                    da2 = da2_parts[1].rstrip(' >>') if len(da2_parts) > 1 else "Unknown"
+                if '<<OPS:' in line:
+                    ops_parts = line.strip().split('<<OPS: ')
+                    ops = ops_parts[1].rstrip(' >>') if len(ops_parts) > 1 else "Unknown"
+                if '<<LAST_RUN_BY:' in line:
+                    last_run_by_parts = line.strip().split('<<LAST_RUN_BY: ')
+                    last_run_by = last_run_by_parts[1].rstrip(' >>') if len(last_run_by_parts) > 1 else "Unknown"
+
 
                 # Check if the line starts a block
                 if 'CREATE PROGRAM' in line or 'DROP PROGRAM' in line:
@@ -1145,17 +1162,16 @@ def split_dat_file_to_blocks(input_file_path, skip_compiler_prefix=None, skip_so
                     block_name = line.split()[2]  # Assuming the name is the third word
                     current_block = [line]  # Start a new block with the current line
                 elif 'END GO' in line and in_block:
-                    # End of the current block
-                    current_block.append(line)  # Add the ending line to the current block
-                    if not ((skip_compiler_prefix and compiled_by.lower().startswith(skip_compiler_prefix)) or
-                            (skip_source_prefix and source.lower().startswith(skip_source_prefix))):
-                        blocks.append((block_name, '\n'.join(current_block), compiled_by, source))  # Save the block unless it's to be skipped
-                    in_block = False  # Reset for the next block
-                    compiled_by = ""  # Reset compiled by and source for the next block
-                    source = ""
-                elif in_block:
-                    # If we're in a block, keep appending lines to the current block
                     current_block.append(line)
+                    if not ((skip_compiler_prefix and compiled_by.lower().startswith(skip_compiler_prefix)) or
+                            (skip_source_prefix and skip_source_prefix in source.lower())):
+                        # Include da2 and ops in the saved block
+                        blocks.append((block_name, '\n'.join(current_block), compiled_by, source, da2, ops, last_run_by))
+                    in_block = False
+                    compiled_by, source, da2, ops, last_run_by = "", "", "", "", ""  # Reset all for next block
+                elif in_block:
+                    current_block.append(line)
+
 
     except IOError as e:
         print(f"Error reading file {input_file_path}: {e}")
@@ -1175,7 +1191,7 @@ def search_blocks_aggregated(named_blocks, pattern_objects, detailed_output=Fals
     aggregated_matches = []
     file_count = 0  # Counter to keep track of how many files have been processed
 
-    for program_name, block_content, compiled_by, source in named_blocks:
+    for program_name, block_content, compiled_by, source, da2, ops, last_run_by in named_blocks:
         lines = block_content.split('\n')
         pattern_data = {}
 
@@ -1204,7 +1220,10 @@ def search_blocks_aggregated(named_blocks, pattern_objects, detailed_output=Fals
                         "Matched Lines": "; ".join(data["Matched Lines"]),
                         "Line Numbers": ", ".join(map(str, data["Line Numbers"])),
                         "Compiled By": compiled_by,
-                        "Source": source
+                        "Source": source,
+                        "DA2": da2,  # Add DA2 info to the output
+                        "OPS": ops,
+                        "Last Run By": last_run_by 
                     })
             else:
                 # Aggregate all patterns in a single entry per file
@@ -1217,7 +1236,10 @@ def search_blocks_aggregated(named_blocks, pattern_objects, detailed_output=Fals
                     "Matched Lines": all_matched_lines,
                     "Line Numbers": all_line_numbers,
                     "Compiled By": compiled_by,
-                    "Source": source
+                    "Source": source,
+                    "DA2": da2,
+                    "OPS": ops,
+                    "Last Run By": last_run_by
                 })
 
         # Provide progress update every 100 files
@@ -1232,7 +1254,8 @@ def process_and_search_dat_file(dat_file_path, pattern_objects):
     skip_compiler_input = input("Enter the prefix of 'compiled by' names to skip (e.g., 'd' to skip files with 'compiled by' names starting with 'd', leave empty if none(press enter)): ").strip().lower()
     skip_compiler_prefix = skip_compiler_input if skip_compiler_input else None
 
-    skip_source_input = input("Enter the prefix of source names to skip (e.g., 'd' to skip names starting with 'd', leave empty if none(press enter)): ").strip().lower()
+    skip_source_input = input("Enter the prefix of source names to skip (e.g., '\\\\certification' or 'certification' to skip sources that contain 'certification', leave empty if none (press enter)): ").strip().lower()
+
     skip_source_prefix = skip_source_input if skip_source_input else None 
     if skip_compiler_prefix:
         print(f"Ignoring files with compiled by names starting with '{skip_compiler_prefix}'.")
