@@ -1179,6 +1179,36 @@ def split_dat_file_to_blocks(input_file_path, skip_compiler_prefix=None, skip_so
     return blocks
 
 
+def normalize_program_name(program_name):
+    """
+    Normalize program names to ensure consistent comparison, 
+    especially with regard to the ':dba' suffix.
+    """
+    return program_name.split(":")[0].strip()  # Strip off any suffix like ':dba' and any surrounding whitespace
+
+
+def build_parent_child_map(named_blocks):
+    """
+    Build a dictionary mapping each program to the list of programs that execute it.
+    """
+    parent_child_map = {}
+
+    for program_name, block_content, compiled_by, source, da2, ops, last_run_by in named_blocks:
+        normalized_program_name = normalize_program_name(program_name)
+        lines = block_content.split('\n')
+        for line in lines:
+            if 'EXECUTE' in line.upper():
+                # Extract the program name after 'EXECUTE'
+                child_program_name = line.split('EXECUTE')[-1].strip().split()[0].strip().replace("'", "").replace('"', '')
+                normalized_child_program_name = normalize_program_name(child_program_name)
+                
+                if normalized_child_program_name not in parent_child_map:
+                    parent_child_map[normalized_child_program_name] = []
+                
+                parent_child_map[normalized_child_program_name].append((normalized_program_name, da2, ops))
+
+    return parent_child_map
+
 
 def search_blocks_aggregated(named_blocks, pattern_objects, detailed_output=False):
     """
@@ -1191,7 +1221,11 @@ def search_blocks_aggregated(named_blocks, pattern_objects, detailed_output=Fals
     aggregated_matches = []
     file_count = 0  # Counter to keep track of how many files have been processed
 
+    # Build the parent-child relationship map
+    parent_child_map = build_parent_child_map(named_blocks)
+
     for program_name, block_content, compiled_by, source, da2, ops, last_run_by in named_blocks:
+        normalized_program_name = normalize_program_name(program_name)
         lines = block_content.split('\n')
         pattern_data = {}
 
@@ -1211,6 +1245,16 @@ def search_blocks_aggregated(named_blocks, pattern_objects, detailed_output=Fals
 
         # Only add entries for virtual files with at least one pattern match
         if pattern_data:
+            parent_programs = parent_child_map.get(normalized_program_name, [])
+            parent_da2_jobs = []
+            parent_ops_jobs = []
+
+            for parent_program, parent_da2, parent_ops in parent_programs:
+                if parent_da2 and parent_da2.upper() != 'N/A':
+                    parent_da2_jobs.append(parent_da2)
+                if parent_ops and parent_ops.upper() != 'N/A':
+                    parent_ops_jobs.append(parent_ops)
+
             if detailed_output:
                 # Create a single entry per pattern matched in each virtual file
                 for pattern, data in pattern_data.items():
@@ -1223,7 +1267,10 @@ def search_blocks_aggregated(named_blocks, pattern_objects, detailed_output=Fals
                         "Source": source,
                         "DA2": da2,  # Add DA2 info to the output
                         "OPS": ops,
-                        "Last Run By": last_run_by 
+                        "Last Run By": last_run_by,
+                        "Parent Programs": ", ".join([p[0] for p in parent_programs]) if parent_programs else "None",
+                        "Parent DA2": ", ".join(parent_da2_jobs) if parent_da2_jobs else "None",
+                        "Parent OPS": ", ".join(parent_ops_jobs) if parent_ops_jobs else "None"
                     })
             else:
                 # Aggregate all patterns in a single entry per file
@@ -1239,7 +1286,10 @@ def search_blocks_aggregated(named_blocks, pattern_objects, detailed_output=Fals
                     "Source": source,
                     "DA2": da2,
                     "OPS": ops,
-                    "Last Run By": last_run_by
+                    "Last Run By": last_run_by,
+                    "Parent Programs": ", ".join([p[0] for p in parent_programs]) if parent_programs else "None",
+                    "Parent DA2": ", ".join(parent_da2_jobs) if parent_da2_jobs else "None",
+                    "Parent OPS": ", ".join(parent_ops_jobs) if parent_ops_jobs else "None"
                 })
 
         # Provide progress update every 100 files
